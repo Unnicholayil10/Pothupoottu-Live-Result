@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ml"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- LIVE READY: Upload this file to GitHub Pages/Netlify - Admin edits live for viewers - No Size Change -->
+<title>പോത്ത്പൂട്ട് Live Result</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f0e6;font-family:'Noto Sans Malayalam',sans-serif;display:flex;flex-direction:column;align-items:center;padding:10px}
+.header{background:#7a1f1f;color:#fff;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;width:200mm;max-width:200mm;min-width:200mm;border-radius:6px 6px 0 0}
+.header h1{font-size:13px;font-weight:800}
+.pwd-box{display:flex;gap:6px;align-items:center;background:#fff;padding:4px 8px;border-radius:8px}
+.pwd-box input{border:2px solid #000;border-radius:4px;padding:6px 8px;font-size:12px;width:110px;font-weight:800}
+.btn{border:none;border-radius:6px;padding:6px 12px;font-weight:900;cursor:pointer;font-size:11px}
+.btn-lock{background:#ffeb3b;color:#000;border:2px solid #000}
+.btn-unlock{background:#00e676;color:#000;border:2px solid #000}
+.live-badge{background:#00e676;color:#000;font-weight:900;padding:4px 10px;border-radius:12px;font-size:11px}
+.status{padding:8px;text-align:center;font-weight:900;width:200mm;max-width:200mm;min-width:200mm;font-size:12px}
+.status.locked{background:#ffcdd2;color:#b71c1c} .status.unlocked{background:#c8e6c9;color:#1b5e20}
+.controls{background:#fff;padding:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;width:200mm;max-width:200mm;min-width:200mm;border:1px solid #ccc;border-top:none}
+.meta-input{border:1px solid #7a1f1f;border-radius:4px;padding:6px;font-size:11px;flex:1;min-width:80px}
+.table-wrap{width:200mm;max-width:200mm;min-width:200mm;background:#fff;border:1px solid #ccc;overflow:hidden}
+table{width:200mm;max-width:200mm;min-width:200mm;border-collapse:collapse;table-layout:fixed}
+th{background:#7a1f1f;color:#fff;padding:6px 1px;font-size:8px;font-weight:900;text-align:center;border-right:1px solid #5a1515;line-height:1.1}
+th.sub-head{background:#ffeb3b;color:#000} th.g-head{background:#00e676;color:#000}
+td{border-bottom:1px solid #ddd;border-right:1px solid #eee;padding:0;text-align:center;background:#fff;min-height:36px;font-size:12px;font-weight:900;height:auto !important}
+td:nth-child(2){height:auto !important;min-height:36px !important;white-space:normal !important}
+td input{width:100%;height:36px;border:none;text-align:center;font-size:12px;font-weight:900;background:transparent}
+td input.name{text-align:left;padding-left:4px;font-size:12px !important;font-weight:900;white-space:normal !important;word-wrap:break-word !important;line-height:1.2;overflow:visible !important;word-break:break-word !important;min-height:36px !important;height:auto !important}
+.table-wrap table th:nth-child(1), .table-wrap table td:nth-child(1){width:8mm !important;min-width:8mm !important;max-width:8mm !important}
+.table-wrap table th:nth-child(2), .table-wrap table td:nth-child(2){width:100mm !important;min-width:100mm !important;max-width:100mm !important}
+.table-wrap table th:nth-child(3), .table-wrap table td:nth-child(3){width:14mm !important;min-width:14mm !important;max-width:14mm !important}
+.table-wrap table th:nth-child(4), .table-wrap table td:nth-child(4){width:14mm !important;min-width:14mm !important;max-width:14mm !important}
+.table-wrap table th:nth-child(5), .table-wrap table td:nth-child(5){width:15mm !important;min-width:15mm !important;max-width:15mm !important}
+.table-wrap table th:nth-child(6), .table-wrap table td:nth-child(6){width:14mm !important;min-width:14mm !important;max-width:14mm !important}
+.table-wrap table th:nth-child(7), .table-wrap table td:nth-child(7){width:14mm !important;min-width:14mm !important;max-width:14mm !important}
+td input.name{font-size:12px !important;font-weight:900 !important}
+#bestTime{width:200mm !important;max-width:200mm !important;min-width:200mm !important;margin:10px auto 120px auto !important;display:block !important;padding:14px !important;box-sizing:border-box !important;white-space:normal !important;word-wrap:break-word !important;font-size:13px !important;position:relative !important;z-index:10 !important;max-width:200mm !important;min-width:200mm !important;margin:10px auto 100px auto !important;display:block !important;padding:14px !important;box-sizing:border-box !important;white-space:normal !important;word-wrap:break-word !important;font-size:13px !important;position:relative !important;z-index:10 !important}
+
+td input:disabled{background:#f5f5f5 !important;color:#999 !important}
+td.sub-col{background:#fffde7 !important;font-weight:900;font-size:12px} td.g-col{background:#e8f5e9 !important;font-weight:900;font-size:12px}
+.top10-wrap{width:200mm;max-width:200mm;min-width:200mm;margin:10px auto;background:#fff;border:2px solid #7a1f1f;border-radius:8px;overflow:hidden}
+.top10-header{background:#7a1f1f;color:#fff;padding:8px;font-size:12px;font-weight:900;text-align:center}
+.top10-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.top10-table th{background:#ffeb3b !important;color:#000 !important;padding:4px 1px !important;font-size:6px !important;white-space:nowrap}
+.top10-table td{padding:3px 1px !important;font-size:7px !important;height:24px;border-bottom:1px solid #ddd;text-align:center}
+@media screen and (max-width:768px){
+ body{padding:0;width:100vw;align-items:stretch}
+ .header,.controls,.table-wrap,.top10-wrap,.status{width:100vw !important;max-width:100vw !important;min-width:100vw !important;border-radius:0}
+ table{width:100vw !important;max-width:100vw !important;min-width:100vw !important}
+}
+</style>
+
+<style>
+.history-bar{width:200mm;max-width:200mm;min-width:200mm;background:#fffde7;border:2px solid #7a1f1f;border-bottom:none;padding:6px;display:flex;flex-direction:column;gap:4px}
+.history-label{font-size:10px;font-weight:900;color:#7a1f1f;background:#ffeb3b;padding:3px 6px;border-radius:3px;text-align:center}
+.history-bar select{width:100%;border:2px solid #7a1f1f;border-radius:4px;padding:7px;font-size:11px;font-weight:800;background:#fff;display:block !important;visibility:visible !important}
+.history-btns{display:flex;gap:4px}
+.btn-delete{background:#d32f2f;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;flex:1}
+.btn-new{background:#1976d2;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;flex:1}
+.pwd-box-hidden{display:none !important} .pwd-box-visible{display:flex !important}
+.admin-dot{font-size:11px;color:#888;text-align:center;padding:6px;cursor:pointer;width:200mm;max-width:200mm;margin:0 auto;display:block;background:#fff;border-bottom:1px solid #ddd;user-select:none}
+.foul-mini{position:absolute;bottom:0;left:0;width:100%;height:11px;font-size:6px;background:#fff3f3;color:#b71c1c;border-top:1px solid #ffb3b3;text-align:center;line-height:11px;display:none;font-weight:900}
+td.foul .foul-mini{display:block !important}
+@media screen and (max-width:768px){
+ .history-bar,.admin-dot,#bestTime{width:100vw !important;max-width:100vw !important;min-width:100vw !important;border-radius:0}
+}
+</style>
+
+
+<style>
+/* Foul - light color + dark red - same size */
+td.foul{background:#ffebee !important}
+td.foul input{color:#b71c1c !important}
+td.blocked{background:#f5f5f5 !important}
+td.blocked input{background:#eee !important;color:#999 !important;pointer-events:none}
+/* Clear corner - small 8x8 - no size change */
+td .corner{position:absolute;top:0;right:0;width:8px;height:8px;background:#ff5252;border-radius:0 0 0 4px;cursor:pointer;display:none}
+td:hover .corner{display:block}
+.foul-note{position:absolute;bottom:0;left:0;width:100%;height:12px;font-size:6px;border:none;background:#fff3f3;text-align:center;color:#b71c1c;display:none}
+td.foul .foul-note{display:block}
+</style>
+
+<style>
+/* R1,R2,R3 100% numeric - easy typing - same size */
+td input[inputmode="decimal" autocomplete="off" spellcheck="false"]{
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+td input[inputmode="decimal" autocomplete="off" spellcheck="false"]::-webkit-outer-spin-button,
+td input[inputmode="decimal" autocomplete="off" spellcheck="false"]::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+</style>
+
+
+<style>
+.f-btn{
+  position:absolute;
+  top:1px;
+  right:1px;
+  width:14px;
+  height:14px;
+  background:#b71c1c;
+  color:#fff;
+  border:none;
+  border-radius:2px;
+  font-size:8px;
+  font-weight:900;
+  cursor:pointer;
+  display:none;
+  z-index:2;
+}
+td:hover .f-btn, td:focus-within .f-btn{
+  display:block;
+}
+@media (max-width:768px){
+  .f-btn{ display:block; }
+}
+</style>
+
+
+<style>
+.foul-note[inputmode="decimal"]{ font-variant-numeric: tabular-nums; }
+</style>
+
+
+
+
+
+
+
+
+<style>
+.wm-wrap{ position:relative !important; overflow:hidden !important; }
+.wm-middle-large{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  font-size:85px; font-weight:900; color:rgba(100,130,180,0.18); 
+  letter-spacing:6px; white-space:nowrap; pointer-events:none; z-index:1;
+  font-family:Arial, sans-serif;
+}
+.wm-middle-large-45{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-45deg);
+  font-size:85px; font-weight:900; color:rgba(100,130,180,0.18);
+  letter-spacing:6px; white-space:nowrap; pointer-events:none; z-index:1;
+  font-family:Arial, sans-serif;
+}
+.wm-top-small{
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  font-size:14px; font-weight:400; color:rgba(100,130,180,0.35);
+  letter-spacing:1px; white-space:nowrap; pointer-events:none; z-index:1;
+}
+.wm-bottom-small{
+  position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+  font-size:14px; font-weight:400; color:rgba(100,130,180,0.35);
+  letter-spacing:1px; white-space:nowrap; pointer-events:none; z-index:1;
+}
+@media print{
+  .wm-middle-large, .wm-middle-large-45{ color:rgba(100,130,180,0.22); }
+  .wm-top-small, .wm-bottom-small{ color:rgba(100,130,180,0.4); }
+}
+</style>
+
+
+<style>
+/* Phone portrait horizontal scroll fix - no other changes */
+@media screen and (max-width: 768px){
+  body{ overflow-x:auto; }
+  /* Main entry table wrapper */
+  table{ min-width:750px; }
+  /* Make all table containers scrollable horizontally */
+  div:has(> table), .table-wrapper, #top10R1, #top10Sub, #top10G{
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+    display:block !important;
+    width:100% !important;
+    max-width:100vw !important;
+  }
+  /* Ensure tables don't shrink */
+  table{
+    width:auto !important;
+    min-width:750px !important;
+    table-layout:auto !important;
+  }
+}
+/* For all screens, allow horizontal scroll on main containers */
+.main-table-container, .entry-sheet{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+</style>
+<script>
+// Wrap tables for horizontal scroll if not already wrapped
+document.addEventListener('DOMContentLoaded', function(){
+  let tables = document.querySelectorAll('table');
+  tables.forEach(t=>{
+    let parent = t.parentElement;
+    if(parent && parent.style.overflowX!=='auto'){
+      // If parent is not scrollable, make it scrollable
+      if(parent.tagName==='DIV'){
+        parent.style.overflowX='auto';
+        parent.style.webkitOverflowScrolling='touch';
+      }
+    }
+  });
+});
+</script>
+
+
+<style>
+/* Hide the small red F button in all R columns - user requested, no other changes */
+.f-btn{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  width:0 !important;
+  height:0 !important;
+  pointer-events:none !important;
+}
+.foul-note{
+  display:none;
+  width:100%;
+  font-size:10px;
+  padding:2px;
+  border:1px solid #ff5252;
+  border-radius:3px;
+  background:#ffebee;
+  text-align:center;
+}
+td.foul .foul-note{
+  display:block !important;
+}
+/* Ensure foul value F still shows when user sets via right-click, but not the button */
+td.foul input, td.blocked input{
+  background:#ffebee !important;
+}
+/* Keep the actual foul text input visible when it's F, but hide the extra button */
+</style>
+
+
+<style>
+/* FIX: Top10 3 sheets - actual IDs top10R1, top10R2, top10Final - same size as upper score sheet */
+.top10-table th{
+  font-size:12px !important;
+  padding:5px 4px !important;
+  line-height:1.2 !important;
+}
+.top10-table td{
+  font-size:12px !important;
+  padding:5px 4px !important;
+  line-height:1.3 !important;
+  height:auto !important;
+}
+/* Specifically Round2 and Final - increase to main sheet size */
+#top10R2, #top10Final, #top10R1{
+  font-size:13px !important;
+}
+#top10R2 th, #top10Final th, #top10R1 th{
+  font-size:12px !important;
+}
+#top10R2 td, #top10Final td, #top10R1 td{
+  font-size:13px !important;
+}
+
+/* Ensure watermark stays */
+.wm-middle-large, .wm-middle-large-45, .wm-top-small, .wm-bottom-small{
+  display:block !important;
+  visibility:visible !important;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(()=>{
+    document.querySelectorAll('.top10-table th').forEach(el=>el.style.fontSize='12px');
+    document.querySelectorAll('.top10-table td').forEach(el=>el.style.fontSize='13px');
+    if(typeof addWatermarkPerfect==='function') addWatermarkPerfect();
+  }, 500);
+  setTimeout(()=>{
+    document.querySelectorAll('.top10-table th').forEach(el=>el.style.fontSize='12px');
+    document.querySelectorAll('.top10-table td').forEach(el=>el.style.fontSize='13px');
+  }, 1500);
+});
+</script>
+
+
+<style>
+/* ONLY change: Round2 + Final name column -15mm so total result 100% visible */
+/* Round2 name column: 115mm -> 100mm */
+table.top10-table thead tr th:nth-child(3){
+  width:100mm !important;
+  max-width:100mm !important;
+}
+/* More specific for Round2 and Final */
+#top10R2 th:nth-child(3), #top10R2 td:nth-child(3){
+  width:100mm !important;
+  max-width:100mm !important;
+}
+#top10Final th:nth-child(3), #top10Final td:nth-child(3){
+  width:85mm !important;
+  max-width:85mm !important;
+}
+/* Ensure G Total / Sub Total visible 100% */
+#top10R2 th:last-child, #top10R2 td:last-child,
+#top10Final th:last-child, #top10Final td:last-child{
+  min-width:18mm !important;
+  width:18mm !important;
+  display:table-cell !important;
+  visibility:visible !important;
+}
+</style>
+
+
+<style>
+/* FIX: Portrait mode - Top10 Result scroll issue - NO OTHER CHANGES */
+.top10-section, .round1-section, .round2-section, .final-section{
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch !important;
+  width:200mm !important;
+  max-width:200mm !important;
+  margin:0 auto !important;
+}
+.top10-table, #top10R1, #top10R2, #top10Final{
+  min-width:200mm !important;
+  width:200mm !important;
+  table-layout:auto !important;
+}
+@media(max-width:768px){
+  .top10-section, .round1-section, .round2-section, .final-section{
+    width:100vw !important;
+    max-width:100vw !important;
+    overflow-x:auto !important;
+    display:block !important;
+  }
+  .top10-table, #top10R1, #top10R2, #top10Final{
+    min-width:190mm !important;
+    width:190mm !important;
+  }
+  /* Make sure table body is visible */
+  #top10R1 tbody, #top10R2 tbody, #top10Final tbody{
+    display:table-row-group !important;
+  }
+  #top10R1 tr, #top10R2 tr, #top10Final tr{
+    display:table-row !important;
+    visibility:visible !important;
+  }
+}
+/* Fix Round1 empty issue - ensure R1 column visible */
+#top10R1 td:last-child{
+  width:14mm !important;
+  min-width:14mm !important;
+  display:table-cell !important;
+  background:#e3f2fd !important;
+  font-weight:900 !important;
+}
+</style>
+
+</head><body>
+
+<style>
+/* ONLY CHANGE: Hide password box for viewers */
+.pwd-box-hidden{ display:none !important; }
+.pwd-box-visible{ display:flex !important; }
+.admin-dot{ font-size:10px; color:#ccc; text-align:center; padding:3px; cursor:pointer; width:200mm; max-width:200mm; margin:0 auto; display:block; }
+@media(max-width:768px){ .admin-dot{ width:100vw !important; max-width:100vw !important; } }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  let pwdBox = document.querySelector('.pwd-box');
+  let dot = document.getElementById('adminDotOnly');
+  // Hide by default for viewers
+  if(pwdBox && !window.location.search.includes('admin')){
+    pwdBox.classList.add('pwd-box-hidden');
+  }
+  if(dot){
+    dot.onclick = function(){
+      if(pwdBox){
+        pwdBox.classList.remove('pwd-box-hidden');
+        pwdBox.classList.add('pwd-box-visible');
+        pwdBox.style.display='flex';
+      }
+      dot.style.display='none';
+      return false;
+    };
+  }
+  // If admin param, show
+  if(window.location.search.includes('admin')){
+    if(pwdBox){
+      pwdBox.classList.remove('pwd-box-hidden');
+      pwdBox.classList.add('pwd-box-visible');
+      pwdBox.style.display='flex';
+    }
+    if(dot) dot.style.display='none';
+  }
+});
+</script>
+<a id="adminDotOnly" class="admin-dot" href="#">•</a>
+
+<div class="header">
+<h1>🐂 പോത്ത്പൂട്ട് Live Result</h1>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<div class="pwd-box pwd-box-hidden" id="pwdBox">
+<input id="pwdInput" type="password" placeholder="">
+<button class="btn btn-lock" id="lockBtn" onclick="toggleLock()">🔒 Unlock</button>
+</div>
+<span id="liveBadge" class="live-badge">🔒 LOCKED</span>
+</div>
+</div>
+<div id="statusBar" class="status locked">🔒 Locked</div>
+
+<div class="admin-dot" id="adminDot" onclick="showPwdBox()">• • • admin - ക്ലിക്ക് ചെയ്യുക</div>
+
+
+
+<div class="history-bar" id="historyBar">
+
+
+
+
+
+<div style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:6px;background:#fffde7;padding:2px 2px 4px 2px;box-sizing:border-box;border-bottom:1px solid #7a1f1f;">
+  <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAsICAoIBwsKCQoNDAsNERwSEQ8PESIZGhQcKSQrKigkJyctMkA3LTA9MCcnOEw5PUNFSElIKzZPVU5GVEBHSEX/2wBDAQwNDREPESESEiFFLicuRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUX/wAARCAB4AIgDASIAAhEBAxEB/8QAHAAAAgMBAQEBAAAAAAAAAAAABQYABAcCAwEI/8QAOxAAAgEDAwIEBAQFAgUFAAAAAQIDAAQRBRIhMUEGEyJRMmFxgRQjkaEHQrHB4RUkM0Ny0fAWJVKy8f/EABoBAAMBAQEBAAAAAAAAAAAAAAIDBAEFAAb/xAAqEQACAgEEAQIGAwEBAAAAAAABAgARAxIhMUEEIpETMlFhcfAFI8Ek0f/aAAwDAQACEQMRAD8AM3viCyt1hSOGZ51P/DLgLj6jOMfSlPVry2sNZkiurWTZLIZLZrZz6M9sA++OuRRDS7BE0WZHZY5QNshc4yfqenNcwaUNQzqEzeYsbkrHnAIHGCfaosapVoJ2HxsNrNxt0PTzoel7p5dzuoklJXO0AZx7nGTQt/HcUtxdL+FO2MZjbzB+YPfpxXzwxqN9dXHkM63trDkM0Qz5eB0B746d6DeKfDxs9diTToWZbxMpGo4VienyHf8AWiwYsDLkTN8xHpPWx4/MXiX/AKE1/LvftzcZrLxFaagLvYJA1pEJJBwQeMkA+46c11Y67Zz2wuJAYkLFRuYcqM+r6cVY0TwzFpmgzWUY824uIWEs2cb2II/QdqyuSSbcY5A22Ebdpz19vpmul4v8f/H+SMhxg7EAb7nbr8n2EhbL5HxFW6HZ6H6PeaZqHi7S9OgglIln81N6BAAQM45yeKIWWuWWqqFtJQ0xTeImGGA+lZpc6Te2dpBe39tIsCxj8xl43MxIBx9uPtVvw/NqyalFcWen3Kxl9rzPEfUO689Ki8rwcKAY8Ituze06WHHjbG2bI9X8o7/JmopCzExsnb1gHOatLZxqFcRbSB0z0r3Cr5gGAp25C55xXYHqC46YwTzmoV8YDmc9spPE82QqFUfrnmu+Ay8DJ7Zr5s3SAk9sbc8dev1rthtDHIyBwT2pwxAcCLJnjJcJHJGjYDSHAyw6+1QS/mhChIx8S8jPtSr4wlMdxaSEo9uYpGiYLnbIBnr8x/SljQ/El5p7CSeZ5YmfJiLYB69/v+1TliMhQg7TpYP49s+H4qEfiahKyyJtCyYc7SVO0rzXjZuzBBJKjOVOTtKlwDgHB6fOu7C+g1K1S4tZA0Tdce/tXoiONyv6iPhYnOR86Jse4JkHFqZCvqI55H2qVzJJ5ch2qpZiB8XJqUpkW54XMpe0eeG4EbY85wWMjcAnA4HeqmrSzCFNPjAS2iU7hnG4Dp9cmrLTiCCIOJMnk4Jz07Y7VxpcMV7qOx94WX8o7lxjPHA+VBiLBZ9H5BQHad6DaXWjaAlyLjyzJL5ihWxIqkfER12kijsOpDW76O7e7Nu9pFtR4rdXLHu5LdF5xgf3o3qPhbTbl0meOa1khjx5sbDAVRgcEEdKAHQ5V0ZNWvdYnggdPM2JCu8gn0jPuRiq1tjuLnIL4iLuj+7RkttZtrnT5BLdxQzxpmSSMFQq9nww4z7c/LNLGjW3h+4up5LycTzLIcT3KbSV7YTP1ySKA3Ivry2S2heX/cbYzczyqudjfzHjgZxnvih1mkN9rEmnWKH8PHBKY5VO5ppFXJfnqDjoOwqrErr6sex+xqeU4U/rzk6TRur/AM/2aRE2k6tJc2FxeG5soFGIsepe4OV7DHHtRjR5NJ0uxisoL5JAO8jepyff9qxfTdWWwtrS4l8wyJOpMmCBtIzt3d/nT5qGp6jfw2M+kpC8Dr+Z5rIQr5ACDf3yenzFARpPq3MWU1prU+m/Y/f8/vEfpruGFVllkCxFtu8Dhfqe3SvZeVDgDB6Y7jtWfR6nrMAC6pZhJInDRqLbK8dCShx79aJr4h8QrHm50SdfnEMkfsa9qXuI+Cx2Fe8bsLlQSN47AdaTvG3im60OVYPLiEEy4Vi/qJ6HI9uf2ruTxqI5IlutOvYXPw5tmbJH6V73l3pGt6Ul1flkjbGJGhClRu5Hqz1xjFUYMq4mDkAiAcfTRM0k3niB4rW4Z5LaxtX4RwM+3P3HPsKbdA8E6YbZbq6T8Uz8qknwIPbHG76mvKG4GbgaIrXKHJdzEAAeM89/n+lGbO+KQIVmja3AARYPiyc5zn2/70Obyz5OTXkXSRY245uVAHDh+H45IVt+bPHfEJxWUdqgjtkjgiBztiQKCfpXtkZClxuxnHelu91m60jUAbxvxNo3xMls+5R25UEZ+VMMZiubdJY+Y5UDKSMZUj9RSCu9iSb1ZnZTLhsDI6HFSovTrkDpjoalBUyYh5NxIRKZFKgFfR6sUZ0awvIJI5wskphO7KJx3Iz3P2+X1ofbOr3EaicAkeg9R8+n6Uy2t+0GpxeQ4VFUuI2HDYwDk9vrUSFm9Jn0vmLixj+vc+8YdYuY5/Cs88R5uLfABJ4L+n+ppe8c3q2b2lgp/KjXzXA+XpUfsaY9SjD6PYxKmxHuoRtByMeYD/as7/iHMf8A1NLGxJby4wmewGSf3qzGAGE+fPBE+wifUNM1CaGCEyzSR25lxgFR6mJ4xnha5sPDs1rq+jSyRv5X4lYyUJ9QYHJBHPHeqelLdQ6Wl3azTsu9pGWBwAD0Jb6dvevreIDpL3skc11czyKZAsrnCNxjkfEvcfSqQ6gMqHeBoybOdoF1OK5W5u0RLg2cMpk3pGcRdsn71d0rxLFBrMd3Nc6hL58qCZG2ohI6EgdSDz2+dVdJkvn0+e71C+meMqQsbyGRnXqRtySATt64BotpOlW83h8Wk10ttqE6klZIufUeB7//ALWM6jZoK6yD++8b7rXhqOn71/4id0PxIev3/wDO1OWiTGfRbSXdnMYGTznHH9qyCLS9T0QtATDPEM7JEfG5T3AbmtP8OXcFvoFpHc3MKSYJKtIARkk4pbiltZpR13cVF7xfeedrDrbobieFPLRVG7YSMtx3OKV9S1GK20e3sYo5AIkUznkOXPqYeroA39BV/VbfU59cle1huAgmL/iIh2JOGDDg0oyrfajLGoMzebI2yZ+A3fhfb5djTkIIG8xHCkmh9r/87mmeC/Eum2vh2MPII5FQgq55ypOcn6EHPzNBdJvP9WvdTSxmKw3SusbYOBIF9PpPvgkUqiJTdNpO5md1eMyIcK02Onz7Z+ldeDrox6lFbzLKztN61jB3RgAjK46kZ6HikkXdnj6/S+50MgRNJG9jcjph0Kobe30jXp2uWy6WrQ2oinMILbZHBU9C3xc8/wBqfPDk5udBspt7tui9Rb1EkHBJP1rG9bgbTPEU0UAIgYiWIlSoIcZI+XNaz4JjkHhTTwzD1IWII5wWJFeYdiQ2aow/HnBDKQBwD71K6HrUbSMZxxUrAhrYXBuZNpVsr3cE0RUfmDaqDjrTD450y3txDdxERNI5V4xgK3HX/vQTwool1GOJtx/NU5xwDnNN3jS2abS4pASEjlBc/IjH6ZxUCHdgZ1czAOtdz10uA6l4Yig3ujx8LJ1KOrZB/UCkr+ImhXzi21e4MDMhEMghVgAOcMc/M4py8Gj/ANpfAYAyk+rr0FFNRsY7+0ntrgBoZVKMuP3+tMGQpTfSQv8AORMTe9uLTw/cJ5rweaU8jYozuHxNkdOMCld9WkZvz4YZmHVmBBb67SAf0pj1NZIEFjeqHSzLRrtBUqVJ9uvvzSw0a3ExCISc85OK6mnEN0G55iTqIAPXEsyeILprdLeyRLJed5txtMhPuetVoJJBKihwrK2d/wA/evj2UkbZK4xzntj3r7BGTMpAxGpyWI4rRXUDTpjh4Xsb7VL61sIbmZYGfMgJyAO5AP35+dasfBOixktDbSJk8qkzAE/TOKE/w609YYLy5Cj1ERKw7gcn+op0CuFLBRu7DPFSk6mNR4y5FFBjt95kPiG7l0HxBLbpI3kRBCsJYkYxwD0qvHf2kejtfabJJFLYylYYZgGMcspGOSCGUAOffpRn+KekFBb6jCuEAMUqqOx5BOfnmlDQZR/puqR3TrDbuYm85iMBg3w57ZHHyxRquwK7HuJfnURdbieN4zWklvMqNK8UwkG//mHdk5+uT+tO8cEekSS6lDMqT20BC+WCfXISWznqBkDnnjNLtu1jLq0CtMFVJNy5IZXUEZ569ASMDrXpaa1FetdWf4hI53kDicoSnB2gE/8ATxnGOn1rc65MjBU4h4Sqgg8zy8TTSz3lo7plvwyocHGWyevz5H/hrXPDdv5Og6eu3DLAqn36dKSLDQPxd55kqARKyorlsqvHIHuelaVAiJEqRrtRAFA9gKXYLaB1NYEC56BR296ldDipVIQVFXM/s7RtM8S3HpOPM3R8cMpP+cU56lALrTbiI/zRnHyOOKBazdItpBdKw3q/pIPUdwR3FF4Z/wAdprMM/mIRhe3FfPeLnu77nRzhiqvXG0q+Fo/L0dXA5kcsflRSYYXA/TNCPD1wLWzFrOWTYcLvG2jMnqNXNRxAXJsgIyEmY14tsGfxBqyxnDiQSBSOoK5z+tKbj8NOFiQfiMZXZ6mOR0471ov8SrVrDU7XUo1ISdPKkI6hl5H6j/61P4f3dreaYsLpGshuGBlCjdnA+/3qkMVxg8zVo7QBpngrWdQmSe5h/C2WPWbgYL/RetC47CSPW7q0eEOolaE7QTtycZ/bNbFfTNPIsUIPloe3Q1ldtdx3HiQOzFLlrwqRjIYFhkcdaXhzM7H8Q8mOkF9zYfDlobLRoIj1ILHjH0/aiJfcpAIDg4xmvkSiOMKTgAYFcpjzwAMbiSeOpo9RFAdyciyTKmqWMF7p80F6FNu6ENn+X5j51iP+m3Wmy3NvEWljBK56gjPUA9eK3u4t47mFoZfUCORnFI+v2qQ3xMMYVI1AZefVxS8rthP2Mo8fGMu3czc6Kmnuk0U7AnGNwGQ3fkdBX3TJRZTyCCDzZY8qZQBlF7Yz8+9Hr94d8nnsoDDKsScckAdPvVfw5pkt7cMjSbVSQsrrxuAxkDP0ArVylkJbiG+LSwC8zQfC9nN/ptmsrFiR5j59zzTai7QBnNCtPkRLeNxwpB6fWiInUkYIORmhwMq27cmIzA3p6E9qlco4YkCpXRVgwsSbiZvrd2fIMZ+GGT1Kxw2Qe4o5o+oxrDEFZQuTgA9valzUrOO9vZrneEaVui8CiunaJEiBjI3A6Zr5dcNfJPo8mg49LRrE0M3rwhcDhiORXYlGeKFwW8cIADnGO5qyrKD1/erFvuctsYHED+NrCTWPD13bW675xtkj4/mU5/pmsl8Na6+gajN5sRMExOVJxscdP8/4rcjKE6ce2TSJqHg7RxqMlzMssplJbYz4AJOSePrVWPMFUq3EwYixBXYyx4a8U3OrXkttdQxSRhCxlhXAQ9geftS/bx2k38SVt41QQx3G5V+EBlXJAx880ztPDpGjzixgjhEUTOqIuOQDjPv96yrQbqWTxRYTGQ7zcqwOepzRYgG1MooVNyeilJufotrpREG3cY65rwhvVaeMA/zY4oLJeMybfTtHBwaq6ZftNdgoMJH6iT/ao2yNqBjh4w0mF9W15bO9WGOVC20sxQ5Ix2+VC5VfU1Z4nDyyL796V/FTJYeIVn3MIbhN+48gPyOPbGQcVa8NeIfLuo4yyk7iN7cH7ff+tDmLs2o8SvDiVcVp80+3Og3G+BvJYSGQFiOdoHt9yKbH00WcUzovqcbjtbjj+/evGTX4InkaTJcNgYwc/avW116K8lmhLqjqNy4PBH0+VYvkI66ZO2LNfxNMradrK3vmwvCIpIeCEPDe5q6L84A59ulZvc6rGbmTyWC4kyjxMVJGecnrjGOTT7a2zzRJMxKtIoYoexI5oyrQmVB1Dmn3W5TuYnsPnUqlGwgQ8he/FSqUyMq0JG+IM1iJlxM9vaCcrjDeoH296NaLqK6jYiVgwwccn7Uv6/L5Vp5EZIlnPTPwr/MaYdFthaWMYjB9aqTzn71zsdhPzOllomXYyjh22EFWKnIPUe3yrs7wx2lgDzuCjFBYtZe+fbb2jeliCWfnjtwKMByEBYFSQM85xVNkcxHM8TLM+Q0oXB/+P+aGT3mwHcqPhsZJI+vUUQeVCxBOdvQ0Lvriw3sXu4VbHILgEfbNaG+0wpfEqXOpI6OjwqVIKtg8EEdKAabpenWV3HNDJPNIgIjSUDamSSccfM0xNJbGzuJbWSKXykJJQ7sNjjP6Ui6Xdyx6nbNJJIwaQCQM2QQTVCN6SBFnFZuaOl5MsPMUC4GMkkmq0V5I0+2MLGc/8td3NX3TMLAgE4wMcZoZbQEXUQAw28f1pBb7Q9B+sFeJIwL5FvJPO3Idv8uB7f1qlBZQ2zC8iHn+WQTAzd+xbHQZ+5qz4mSdtZYzJtQLtiHuvX+tDrUeoYG4E/CehoviUKjFxnm4TgkvZoQREWkYEIwXgj2xXtoUTxajJLfoJlwY3hZSA+4YOfl9KGENEWALAZPOeme2au6E1zDfuYmVsRnmRdwB7HFIXSOBKXZ2Xc9RgvfDFlpym4tZIUWYZENwu8r9Dg5FFJZQiqMr8II2jAH0pLhkutQlla4mlaZWG+RjnHPQCmSQM0cI5H5Zz9qeW1G5CRp2Jl62nEkuCoOPfmpVKzV3cnLKmeSOtStMVdRP1aYT+I2VzkIqp9OOf61oFoFjgih3E7FC5qVKS6gVKATUHaI8J/ErGSWR9pz3HP8Ami7fD9OwqVK83M8vECamRCrzPwYlMhIPtWbuz318zbR5kzk/IZOalSnJwTPCGNJs5rW9V5cIqZBXd8fGMY9qoNafh9bWAH0iVSP+nOalSsRiSZvU0pY98Q3Nx1z714QR/wC9iBGMNnI9qlShraDO9X0ldTlUj0bQfzDk8e2KU57NbG+MJl3BP5hwKlSgqECeJ1+IhUE435OKJxpEgYou0MM5B68VKlEFAFwWY3U94tsnleXEsfxHav8Ac9zxV9mBCsQMAHBFSpTFk7cmdQcMWVcg4GT7/SpUqV4wJ//Z" style="width:1.1in;height:0.8in;object-fit:cover;border-radius:6px;border:none;display:block;" alt="Left">
+  <div class="history-label" style="flex:1;margin:0 6px;font-size:10px;">📅 പഴയ മത്സരങ്ങൾ കാണാൻ - Dropdown Link (ടച്ച് ചെയ്യുക)</div>
+  <img src="data:image/jpeg;base64,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" style="width:1.1in;height:0.8in;object-fit:cover;border-radius:6px;border:none;display:block;" alt="Right">
+</div>
+
+
+<select id="compSelect" onchange="switchCompetition(this.value)"></select>
+<div class="history-btns">
+<button class="btn-new" onclick="createNewCompetition()">➕ പുതിയ മത്സരം</button>
+<button class="btn-new" style="background:#ff9800;color:#000" onclick="renameCompetition()">✏️ പേര് മാറ്റുക</button>
+<button class="btn-delete" onclick="deleteCompetition()">🗑️ Delete</button>
+<button onclick="clearCurrent()" style="background:#ff5252;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px">🗑️ Clear</button>
+</div>
+</div>
+
+<div class="controls">
+<button class="btn btn-add" onclick="addRow()">+ പേര്</button>
+<!-- Clear All button disabled as per user request -->
+<button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
+<button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
+<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value);}catch(e){}">
+<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value);}catch(e){}">
+<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th style="width:10mm">No</th><th style="width:115mm">പേര്</th><th style="width:15mm">R1</th><th style="width:15mm">R2</th><th style="width:15mm" class="sub-head">Sub<br>R1+R2</th><th style="width:15mm">R3</th><th style="width:15mm" class="g-head">G Tot<br>R1+R2+R3</th>
+</tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="top10-wrap">
+<div class="top10-header">🏆 Top 10 Live - R1 → R1+R2=Sub → R1+R2+R3=Total</div>
+<div style="padding:4px;background:#f5f0e6">
+<div style="background:#fff;border:2px solid #1976d2;border-radius:8px;overflow:hidden;margin-bottom:6px">
+<div style="background:#1976d2;color:#fff;padding:6px;text-align:center;font-size:12px;font-weight:900">🥇 Round 1 - Top 10 (R1 മാത്രം)</div>
+<table class="top10-table"><thead><tr><th style="width:10mm">No</th><th style="width:10mm">Rank</th><th style="width:115mm">പേര്</th><th style="width:15mm">R1 സമയം</th></tr></thead><tbody id="top10R1"></tbody></table>
+</div>
+<div style="background:#fff;border:2px solid #ff8f00;border-radius:8px;overflow:hidden;margin-bottom:6px">
+<div style="background:#ffeb3b;color:#000;padding:6px;text-align:center;font-size:12px;font-weight:900">🥈 Round 2 - Top 10 [ R1 + R2 = Sub Total ]</div>
+<table class="top10-table"><thead><tr><th style="width:10mm">No</th><th style="width:10mm">Rank</th><th style="width:115mm">പേര്</th><th style="width:15mm">R1</th><th style="width:15mm">R2</th><th style="width:15mm;background:#ff8f00 !important;color:#fff !important">Sub Total</th></tr></thead><tbody id="top10R2"></tbody></table>
+</div>
+<div style="background:#fff;border:2px solid #00e676;border-radius:8px;overflow:hidden">
+<div style="background:#2e7d32;color:#fff;padding:6px;text-align:center;font-size:12px;font-weight:900">🏆 Final - Top 10 [ R1+R2+R3 = G Total ]</div>
+<table class="top10-table"><thead><tr><th style="width:10mm">No</th><th style="width:10mm">Rank</th><th style="width:100mm">പേര്</th><th style="width:15mm">R1</th><th style="width:15mm">R2</th><th style="width:15mm">R3</th><th style="width:15mm;background:#1b5e20 !important;color:#fff !important">G Total</th></tr></thead><tbody id="top10Final"></tbody></table>
+</div>
+</div>
+<div id="bestTime" style="padding:8px;text-align:center;font-weight:900;background:#7a1f1f;color:#fff">🏅 Best Time: -</div>
+</div>
+
+
+
+<script>
+let isAdmin=false;
+let data = [{"name": "പോത്ത് പൂട്ട് കമ്മറ്റി", "r1": "17.32", "fd1": "", "r2": "18.10", "fd2": "", "r3": "F", "fd3": ""}, {"name": "M ഇസ്മായിൽ കാവുംപുറം", "r1": "16.49", "fd1": "", "r2": "16.27", "fd2": "", "r3": "", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ Brothers തോട്ടപ്പായ", "r1": "16.80", "fd1": "", "r2": "16.36", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം", "r1": "17.02", "fd1": "", "r2": "F", "fd2": "14.77", "r3": "", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ", "r1": "16.32", "fd1": "", "r2": "15.99", "fd2": "", "r3": "16.76", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ ഹാജി വാണിയന്നൂർ", "r1": "16.40", "fd1": "", "r2": "15.79", "fd2": "", "r3": "15.64", "fd3": ""}, {"name": "അലി അക്ബർ കൊപ്പം പുലാശ്ശേരി", "r1": "16.69", "fd1": "", "r2": "16.17", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മുഹമ്മദ് ജുനൈസ് കുന്നക്കാവ്", "r1": "15.31", "fd1": "", "r2": "F", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മാനുപ്പ കൊടക്കല്ല്", "r1": "20.16", "fd1": "", "r2": "14.77", "fd2": "", "r3": "F", "fd3": ""}, {"name": "മാളിയേക്കൽ ഷാനുമോൻ വലമ്പൂർ", "r1": "15.42", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ബാവ പാങ്ങ്", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ പി ബക്കർ വാഴാങ്കട", "r1": "16.85", "fd1": "", "r2": "17.10", "fd2": "", "r3": "16.77", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം 2", "r1": "18.03", "fd1": "", "r2": "16.98", "fd2": "", "r3": "F", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട്", "r1": "15.21", "fd1": "", "r2": "15.05", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം", "r1": "14.73", "fd1": "", "r2": "14.49", "fd2": "", "r3": "14.26", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ ബ്രദേഴ്സ് തോട്ടപ്പായ 2", "r1": "15.06", "fd1": "", "r2": "14.61", "fd2": "", "r3": "14.81", "fd3": ""}, {"name": "കമ്മറ്റി പാറമലങ്ങാടി", "r1": "16.81", "fd1": "", "r2": "16.34", "fd2": "", "r3": "16.49", "fd3": ""}, {"name": "ടി സലാം കരേക്കാട്", "r1": "15.81", "fd1": "", "r2": "15.39", "fd2": "", "r3": "F", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട", "r1": "14.73", "fd1": "", "r2": "15.08", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി", "r1": "15.37", "fd1": "", "r2": "F", "fd2": "15.00", "r3": "", "fd3": ""}, {"name": "പൂണേരി ഫായിസ് ഇരിങ്ങാവൂർ", "r1": "15.85", "fd1": "", "r2": "14.97", "fd2": "", "r3": "15.21", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 2", "r1": "17.01", "fd1": "", "r2": "16.48", "fd2": "", "r3": "16.67", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചിരട്ടമല", "r1": "15.17", "fd1": "", "r2": "15.17", "fd2": "", "r3": "", "fd3": ""}, {"name": "കുന്നത്ത് അലി ആലിപ്പറമ്പ്", "r1": "14.40", "fd1": "", "r2": "14.33", "fd2": "", "r3": "14.75", "fd3": ""}, {"name": "T ശുഹൈബ് മോൻ ഉടമല", "r1": "16.88", "fd1": "", "r2": "16.50", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കട്ടേക്കാട്ടുപറമ്പിൽ സെയ്താലിക്കുട്ടി കൊപ്പം", "r1": "15.05", "fd1": "", "r2": "14.89", "fd2": "", "r3": "14.84", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ വാണിയുന്നൂർ 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "M ഇസ്മയിൽ കാവുംപുറം 2", "r1": "15.22", "fd1": "", "r2": "15.52", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ 2", "r1": "16.18", "fd1": "", "r2": "F", "fd2": "15.99", "r3": "", "fd3": ""}, {"name": "മാങ്കുന്നിൽ മാനു ഹാജി കരേക്കാട്", "r1": "15.48", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മുടപ്പക്കാട് 2", "r1": "F", "fd1": "14.99", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കൊന്നക്കാട്ടിൽ തിണ്ടലം 3", "r1": "15.38", "fd1": "", "r2": "15.11", "fd2": "", "r3": "15.13", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട് 2", "r1": "15.16", "fd1": "", "r2": "15.09", "fd2": "", "r3": "14.71", "fd3": ""}, {"name": "M ബാസിൽ പാറമ്മലങ്ങാടി", "r1": "14.78", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "തെച്ചിക്കടം ബ്രദേഴ്സ് തോട്ടപ്പായ 3", "r1": "14.96", "fd1": "", "r2": "14.81", "fd2": "", "r3": "F", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 3", "r1": "16.05", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട 2", "r1": "14.70", "fd1": "", "r2": "14.66", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി 2", "r1": "14.96", "fd1": "", "r2": "14.92", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പുളിക്കത്തൊട്ടിൽ ലിൻഷാ ഫാത്തിമ കരിങ്കല്ലത്താണി", "r1": "14.91", "fd1": "", "r2": "14.42", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം 2", "r1": "14.81", "fd1": "", "r2": "14.69", "fd2": "", "r3": "14.43", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മൊടക്കാട് 3", "r1": "14.73", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചരട്ടാമല 2", "r1": "14.56", "fd1": "", "r2": "14.50", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കട്ടേക്കാട് പറമ്പിൽ സൈതാലിക്കുട്ടി കൊപ്പം 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}];
+try{
+ let s=localStorage.getItem('kaalapoottu_v2');
+ if(s) data=JSON.parse(s);
+ else for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+}catch(e){ for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); }
+
+function save(){ try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); saveCompetitions(); }catch(e){} }
+
+function toggleLock(){
+ let pwdInput=document.getElementById('pwdInput');
+ let pwd=pwdInput.value.trim();
+ let btn=document.getElementById('lockBtn');
+ let status=document.getElementById('statusBar');
+ let badge=document.getElementById('liveBadge');
+ if(isAdmin){
+   isAdmin=false;
+   btn.textContent="🔒 Unlock"; btn.className="btn btn-lock";
+   status.textContent="🔒 Locked"; status.className="status locked";
+   badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; badge.style.color="#fff";
+   render(); try{lockMetaInputs();}catch(e){} return;
+ }
+ if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
+   isAdmin=true;
+   btn.textContent="🔓 Locked"; btn.className="btn btn-unlock";
+   status.textContent="✅ Unlocked"; status.className="status unlocked";
+   badge.textContent="🔓 UNLOCKED"; badge.style.background="#00e676"; badge.style.color="#000";
+   pwdInput.value=""; render(); try{lockMetaInputs();}catch(e){}
+ }else{ alert("Password തെറ്റ്!"); pwdInput.value=""; }
+}
+
+function isFoul(v){ return v.toString().trim().toUpperCase().startsWith('F'); }
+
+function addRow(){ data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); render(); save(); }
+function removeRow(){ if(data.length>1){ data.pop(); render(); save(); } }
+
+function clearAll(){
+ if(!isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
+ if(!confirm("⚠️ എല്ലാ ഡാറ്റയും Clear ചെയ്യണോ? 44 പേരും മായും!")) return;
+ data=[];
+ for(let i=0;i<44;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ try{
+   localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+   localStorage.removeItem('pothpoott_history_v8');
+   localStorage.removeItem('pothpoott_currentId_v8');
+   saveCompetitions();
+ }catch(e){}
+ render();
+ save();
+ alert("✅ Clear ആയി! ഇനി പുതിയ പേരുകൾ അടിക്കാം - Auto Save ON!");
+}
+
+function handle(i,col,val,el){
+ let v=val.trim().toUpperCase();
+ if(v.startsWith('F')) data[i][col]='F';
+ else data[i][col]=val;
+ // Don't re-render whole table - keep focus for continuous typing
+ // Only update totals and foul styling
+ let td=el.parentElement;
+ if(v.startsWith('F')){
+   td.classList.add('foul');
+   td.querySelector('.foul-note').style.display='block';
+ }else{
+   td.classList.remove('foul');
+   let fn=td.querySelector('.foul-note');
+   if(fn && !fn.value) fn.style.display='none';
+ }
+ save();
+ update();
+ // Preserve cursor position - no render()
+ // Store cursor pos
+ let pos=el.selectionStart;
+ setTimeout(()=>{ try{ el.focus(); el.setSelectionRange(pos,pos); }catch(e){} },0);
+}
+
+
+function setFoul(i,col){
+  data[i][col]='F';
+  save();
+  render();
+}
+
+function handleFoulDetail(i,field,val){
+ data[i][field]=val;
+ save();
+}
+
+
+function render(){
+ let tbody=document.getElementById('tbody'); tbody.innerHTML="";
+ data.forEach((r,idx)=>{
+   let dis=isAdmin?"":"disabled";
+   let f1=isFoul(r.r1), f2=isFoul(r.r2), f3=isFoul(r.r3);
+   let c1=f1?"foul":"", c2=f1?"blocked":(f2?"foul":""), c3=(f1||f2)?"blocked":(f3?"foul":"");
+   let subBlocked=f1||f2, gBlocked=f1||f2||f3;
+   let tr=document.createElement('tr');
+   tr.innerHTML=`<td style="position:relative">${idx+1}<div class="corner" onclick="if(isAdmin){data[${idx}].name='';data[${idx}].r1='';data[${idx}].r2='';data[${idx}].r3='';render();save();}" title="Clear row"></div></td>
+   <td style="position:relative"><input class="name" value="${r.name}" ${dis} oninput="data[${idx}].name=this.value;update();save()"><div class="corner" style="display:none" title="Disabled"></div></td>
+   <td class="${c1} rcell" data-idx="${idx}" data-col="r1" oncontextmenu="return showCtx(event,${idx},'r1')"><input value="${r.r1}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} oninput="handle(${idx},'r1',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r1')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd1||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd1',this.value)"></td>
+   <td class="${c2} rcell" data-idx="${idx}" data-col="r2" oncontextmenu="return showCtx(event,${idx},'r2')"><input value="${r.r2}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} ${f1?'disabled':''} oninput="handle(${idx},'r2',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r2')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd2||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd2',this.value)"></td>
+   <td class="sub-col ${subBlocked?'foul':''}" id="sub-${idx}">-</td>
+   <td class="${c3} rcell" data-idx="${idx}" data-col="r3" oncontextmenu="return showCtx(event,${idx},'r3')"><input value="${r.r3}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} ${(f1||f2)?'disabled':''} oninput="handle(${idx},'r3',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r3')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd3||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd3',this.value)"></td>
+   <td class="g-col ${gBlocked?'foul':''}" id="g-${idx}">-</td>`;
+   tbody.appendChild(tr);
+ });
+ update();
+ try{lockMetaInputs();}catch(e){}
+}
+
+
+function buildTop10HTML(list, type){
+  let html='';
+  let prevTime=null, prevRank=0;
+  list.forEach((r,idx)=>{
+    let currTime = type==='r1'?r.r1n : type==='sub'?r.subN : r.gN;
+    let isTie = prevTime!==null && Math.abs(currTime - prevTime) < 0.001;
+    let rank = isTie ? prevRank : idx+1;
+    prevTime=currTime;
+    prevRank=rank;
+    let tieMark = isTie ? ' 🤝' : '';
+    let rankCell = isTie ? `${rank}<br><span style="color:#b71c1c;font-weight:900;font-size:7px">Tie</span>` : `${rank}`;
+    if(type==='r1'){
+      html+=`<tr><td>${r.i+1}</td><td style="color:${isTie?'#b71c1c':''}">${rankCell}</td><td style="text-align:left;width:42%">${r.name||"-"}${tieMark}</td><td>${r.r1}</td></tr>`;
+    }else if(type==='sub'){
+      html+=`<tr><td>${r.i+1}</td><td style="color:${isTie?'#b71c1c':''}">${rankCell}</td><td style="text-align:left;width:115mm">${r.name||"-"}${tieMark}</td><td>${r.r1}</td><td>${r.r2}</td><td>${r.sub}</td></tr>`;
+    }else{
+      html+=`<tr><td>${r.i+1}</td><td style="color:${isTie?'#b71c1c':''}">${rankCell}</td><td style="text-align:left;width:100mm">${r.name||"-"}${tieMark}</td><td>${r.r1}</td><td>${r.r2}</td><td>${r.r3}</td><td>${r.g}</td></tr>`;
+    }
+  });
+  return html;
+}
+
+function update(){
+ let rows=[], singles=[];
+ data.forEach((r,i)=>{
+   let v1=parseFloat(r.r1), v2=parseFloat(r.r2), v3=parseFloat(r.r3);
+   let fv1=parseFloat(r.fd1), fv2=parseFloat(r.fd2), fv3=parseFloat(r.fd3);
+   let f1=isFoul(r.r1), f2=isFoul(r.r2), f3=isFoul(r.r3);
+   let has1=!isNaN(v1)&&!f1, has2=!isNaN(v2)&&!f2, has3=!isNaN(v3)&&!f3;
+   let hasF1=!isNaN(fv1), hasF2=!isNaN(fv2), hasF3=!isNaN(fv3);
+
+   let sub="-", g="-";
+   let subIsFoul=false, gIsFoul=false;
+
+   // New logic as per user:
+   // R1 or R2 foul => Time in Sub Total only, GTotal = F only
+   // R3 foul => R1+R2+R3 sum in G Total with F + small box below only
+   if(f1 || f2){
+     subIsFoul=true;
+     gIsFoul=true;
+     // Sub Total shows time
+     if(f1 && f2){
+       if(hasF1 && hasF2) sub=(fv1+fv2).toFixed(2);
+       else if(hasF1) sub=fv1.toFixed(2);
+       else if(hasF2) sub=fv2.toFixed(2);
+       else if(!isNaN(v1) && !isNaN(v2)) sub=(v1+v2).toFixed(2);
+       else sub="F";
+     }else if(f1){
+       if(hasF1) sub=fv1.toFixed(2);
+       else if(!isNaN(v1)) sub=v1.toFixed(2);
+       else sub="F";
+     }else if(f2){
+       if(!isNaN(v1) && hasF2) sub=(v1+fv2).toFixed(2);
+       else if(hasF1 && hasF2) sub=(fv1+fv2).toFixed(2);
+       else if(hasF2) sub=fv2.toFixed(2);
+       else sub="F";
+     }
+     g="F";
+   }else if(f3){
+     // R3 foul only: R1+R2+R3 sum in G Total
+     gIsFoul=true;
+     if(!isNaN(v1) && !isNaN(v2) && hasF3) g=(v1+v2+fv3).toFixed(2);
+     else if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) g=(v1+v2+v3).toFixed(2);
+     else if(!isNaN(v1) && !isNaN(v2)) g=(v1+v2).toFixed(2);
+     else g="F";
+     if(!isNaN(v1) && !isNaN(v2)) sub=(v1+v2).toFixed(2);
+   }else{
+     if(!isNaN(v1) && !isNaN(v2)) sub=(v1+v2).toFixed(2);
+     if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) g=(v1+v2+v3).toFixed(2);
+   }
+
+   let subForRank = subIsFoul ? 9999 : (sub=="-"?9999:parseFloat(sub));
+   let gForRank = gIsFoul ? 9999 : (g=="-"?9999:parseFloat(g));
+   let r1ForRank = f1 ? 9999 : (isNaN(v1)?9999:v1);
+
+   rows.push({i,name:r.name,r1:r.r1||"-",r2:r.r2||"-",r3:r.r3||"-",sub,g, r1n:r1ForRank, subN:subForRank, gN:gForRank});
+
+   let se=document.getElementById(`sub-${i}`), ge=document.getElementById(`g-${i}`);
+   let subFoulDetail=[r.fd1,r.fd2].filter(x=>x).join(', ');
+   let gFoulDetail=[r.fd1,r.fd2,r.fd3].filter(x=>x).join(', ');
+
+   if(se){
+     if(subIsFoul){
+       se.innerHTML=`F<div class="foul-mini" style="display:block">${subFoulDetail||sub}</div>`;
+       se.style.color="#b71c1c"; se.style.background="#ffebee"; se.classList.add('foul');
+     }else{
+       se.textContent=sub; se.style.color=""; se.style.background=""; se.classList.remove('foul');
+     }
+   }
+   if(ge){
+     if(gIsFoul){
+       ge.textContent="F"; ge.innerHTML="F";
+       ge.style.color="#b71c1c"; ge.style.background="#ffebee"; ge.classList.add('foul');
+     }else{
+       ge.textContent=g; ge.style.color=""; ge.style.background=""; ge.classList.remove('foul');
+     }
+   }
+
+   if(!f1 && !isNaN(v1)) singles.push({t:v1,round:'R1',no:i+1,name:r.name});
+   if(!f2 && !isNaN(v2)) singles.push({t:v2,round:'R2',no:i+1,name:r.name});
+   if(!f3 && !isNaN(v3)) singles.push({t:v3,round:'R3',no:i+1,name:r.name});
+ });
+ let withR1=rows.filter(r=>r.r1n!=9999).sort((a,b)=>a.r1n-b.r1n).slice(0,10);
+ let withSub=rows.filter(r=>r.subN!=9999).sort((a,b)=>a.subN-b.subN).slice(0,10);
+ let withG=rows.filter(r=>r.gN!=9999).sort((a,b)=>a.gN-b.gN).slice(0,10);
+ document.getElementById('top10R1').innerHTML=withR1.length?buildTop10HTML(withR1,'r1'):`<tr><td colspan=4>R1 ഇല്ല</td></tr>`;
+ document.getElementById('top10R2').innerHTML=withSub.length?buildTop10HTML(withSub,'sub'):`<tr><td colspan=6>Sub ഇല്ല</td></tr>`;
+ document.getElementById('top10Final').innerHTML=withG.length?buildTop10HTML(withG,'g'):`<tr><td colspan=7>Final ഇല്ല</td></tr>`;
+ singles.sort((a,b)=>a.t-b.t);
+ let best=singles[0];
+ document.getElementById('bestTime').textContent=best?`🏅 Best Time : ${best.t.toFixed(2)}   No: ${best.no}  ${best.name}  (${best.round})`:'🏅 Best Time : -';
+}
+document.getElementById('pwdInput').addEventListener('keydown',function(e){if(e.key==='Enter'){toggleLock();}});
+render();
+</script>
+
+
+
+
+
+
+
+
+</script>
+<script>
+
+
+<script>
+function lockMetaInputs(){
+  try{
+    let locked = !isAdmin;
+    let m = document.getElementById('malsaramInput');
+    let s = document.getElementById('sthalamInput');
+    let d = document.getElementById('dateInput');
+    if(m) m.disabled = locked;
+    if(s) s.disabled = locked;
+    if(d) d.disabled = locked;
+    if(m) m.style.background = locked ? '#f5f5f5' : '#fff';
+    if(s) s.style.background = locked ? '#f5f5f5' : '#fff';
+    if(d) d.style.background = locked ? '#f5f5f5' : '#fff';
+  }catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(lockMetaInputs, 500); });
+setTimeout(function(){ try{lockMetaInputs();}catch(e){} }, 800);
+</script>
+
+
+<!-- Firebase Live - No Size Change -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script>
+// Firebase Config - User needs to replace with own project for Live
+// For demo, using public test DB - replace with your own for production
+const firebaseConfig = {
+  apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+  authDomain: "kaalapoottu-live.firebaseapp.com",
+  databaseURL: "https://kaalapoottu-live-default-rtdb.firebaseio.com",
+  projectId: "kaalapoottu-live",
+  storageBucket: "kaalapoottu-live.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
+
+let db=null, liveRef=null, isLive=false;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.database();
+  liveRef=db.ref('kaalapoottu/live_2024');
+  isLive=true;
+  document.getElementById('onlineStatus')?.remove();
+  let liveBadge=document.createElement('div');
+  liveBadge.id='liveStatus';
+  liveBadge.style.cssText='padding:5px;text-align:center;font-size:10px;background:#e3f2fd;color:#1565c0;font-weight:900;width:200mm;max-width:200mm';
+  liveBadge.textContent='🔴 LIVE Connecting...';
+  document.body.insertBefore(liveBadge, document.querySelector('.table-wrap'));
+}catch(e){
+  console.log('Firebase not configured - offline mode');
+}
+
+function pushLive(){
+  if(!isLive || !liveRef || !isAdmin) return;
+  try{
+    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent});
+    document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
+    document.getElementById('liveStatus').style.background='#c8e6c9';
+  }catch(e){}
+}
+
+function listenLive(){
+  if(!isLive || !liveRef) return;
+  liveRef.on('value', snap=>{
+    let v=snap.val();
+    if(!v || !v.data) return;
+    if(isAdmin) return; // Admin doesn't overwrite own edits
+    data=v.data;
+    render();
+    let ls=document.getElementById('liveStatus');
+    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString();
+  });
+}
+
+// Override save to push live
+const origSave=save;
+save=function(){
+  origSave();
+  pushLive();
+}
+
+// Start listening if viewer
+setTimeout(()=>{
+  if(!isAdmin) listenLive();
+  // If admin unlocks later, stop listening and start pushing
+  let origToggle=toggleLock;
+  toggleLock=function(){
+    origToggle();
+    if(isAdmin){
+      if(liveRef) liveRef.off();
+      document.getElementById('liveStatus').textContent='🔴 LIVE - You are Admin - Others see live';
+    }else{
+      listenLive();
+    }
+  };
+},500);
+</script>
+<div id="onlineStatus" style="padding:5px;text-align:center;font-size:10px;background:#e8f5e9;width:200mm;max-width:200mm">💾 Offline Save: ON | Live Ready - Upload to GitHub Pages</div>
+
+
+
+
+<div class="remove" onclick="ctxRemoveF()">❌ F - Foul ഒഴിവാക്കുക</div>
+</div>
+
+
+
+<style>
+#ctxMenu{
+  position:fixed; display:none; background:#fff; border:2px solid #7a1f1f; border-radius:10px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.4); z-index:99999; min-width:180px; overflow:hidden;
+}
+#ctxMenu div{ padding:12px 16px; cursor:pointer; font-size:13px; font-weight:900; border-bottom:1px solid #eee; }
+#ctxMenu div:last-child{ border-bottom:none; }
+#ctxMenu div:hover{ background:#ffebee; }
+#ctxMenu div.remove{ color:#b71c1c; }
+.rcell{ position:relative; }
+</style>
+<div id="ctxMenu">
+  <div onclick="ctxAddF()">🚩 F - Foul ചേർക്കുക</div>
+  <div class="remove" onclick="ctxRemoveF()">❌ F - Foul ഒഴിവാക്കുക</div>
+</div>
+<script>
+let ctxIdx=-1, ctxCol='';
+function showCtx(e, idx, col){
+  if(e){ try{ e.preventDefault(); e.stopPropagation(); }catch(e2){} }
+  ctxIdx=idx; ctxCol=col;
+  let m=document.getElementById('ctxMenu');
+  // Use clientX/clientY for fixed position - fixes far away issue
+  let cx = e ? (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0) || 100) : 100;
+  let cy = e ? (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0) || 100) : 100;
+  // Keep inside viewport
+  let vw = window.innerWidth, vh = window.innerHeight;
+  let mw = 180, mh = 80;
+  if(cx + mw > vw) cx = vw - mw - 10;
+  if(cy + mh > vh) cy = vh - mh - 10;
+  if(cx<5) cx=5; if(cy<5) cy=5;
+  m.style.left=cx+'px';
+  m.style.top=cy+'px';
+  m.style.display='block';
+  return false;
+}
+function ctxAddF(){
+  if(ctxIdx>=0 && data[ctxIdx]){ data[ctxIdx][ctxCol]='F'; if(typeof save==='function') save(); if(typeof render==='function') render(); if(typeof pushLive==='function') try{pushLive();}catch(e){} }
+  let mm=document.getElementById('ctxMenu'); if(mm) mm.style.display='none';
+}
+function ctxRemoveF(){
+  if(ctxIdx>=0 && data[ctxIdx]){ data[ctxIdx][ctxCol]=''; let fd='fd'+ctxCol.slice(1); if(data[ctxIdx][fd]!==undefined) data[ctxIdx][fd]=''; if(typeof save==='function') save(); if(typeof render==='function') render(); if(typeof pushLive==='function') try{pushLive();}catch(e){} }
+  let mm=document.getElementById('ctxMenu'); if(mm) mm.style.display='none';
+}
+document.addEventListener('click', function(){ let mm=document.getElementById('ctxMenu'); if(mm) mm.style.display='none'; });
+// Long press for mobile - all rows
+let lpTimer=null, lpData=null;
+document.addEventListener('touchstart', function(e){
+  let cell = e.target.closest('td.rcell');
+  if(!cell) return;
+  let idx = cell.getAttribute('data-idx');
+  let col = cell.getAttribute('data-col');
+  if(idx===null || col===null) return;
+  let t=e.touches[0];
+  lpData={idx:parseInt(idx), col:col, x:t.clientX, y:t.clientY};
+  lpTimer=setTimeout(function(){
+    let fake={clientX:lpData.x, clientY:lpData.y, preventDefault:function(){}, stopPropagation:function(){}};
+    showCtx(fake, lpData.idx, lpData.col);
+  },600);
+},{passive:true});
+document.addEventListener('touchend', function(){ clearTimeout(lpTimer); });
+document.addEventListener('touchmove', function(){ clearTimeout(lpTimer); });
+</script>
+
+
+
+
+
+
+
+
+
+
+
+<script>
+function addWatermarkPerfect(){
+  document.querySelectorAll('.wm-middle-large,.wm-middle-large-45,.wm-top-small,.wm-bottom-small').forEach(e=>e.remove());
+  
+  function addToSheet(el, is45){
+    if(!el) return;
+    el.style.position='relative';
+    el.style.overflow='hidden';
+    let middleClass = is45 ? 'wm-middle-large-45' : 'wm-middle-large';
+    let m = document.createElement('div'); m.className=middleClass; m.textContent='Unnicholayil'; el.appendChild(m);
+    let t = document.createElement('div'); t.className='wm-top-small'; t.textContent='Unnicholayil'; el.appendChild(t);
+    let b = document.createElement('div'); b.className='wm-bottom-small'; b.textContent='Unnicholayil'; el.appendChild(b);
+  }
+  
+  // Main large entry sheet - 45 deg
+  let entryTable = null;
+  let allTables = document.querySelectorAll('table');
+  if(allTables.length>0){
+    // First table is main entry (44 rows)
+    let firstTable = allTables[0];
+    entryTable = firstTable.parentElement;
+    if(entryTable) addToSheet(entryTable, true);
+  }
+  
+  // Top 3 sheets - Round1 (already OK) + Round2 + Final - same style as Round1 (non-45)
+  // Round1 is already OK, but we re-add to ensure
+  let r1 = document.getElementById('top10R1');
+  let r2 = document.getElementById('top10Sub');
+  let r3 = document.getElementById('top10G');
+  
+  if(r1) addToSheet(r1, false);
+  if(r2) addToSheet(r2, false);
+  if(r3) addToSheet(r3, false);
+  
+  // Also try by class if IDs fail - find yellow header Round2 and green header Final
+  // Search for divs containing Round 2 - Top 10
+  document.querySelectorAll('div').forEach(div=>{
+    let txt = div.textContent || '';
+    if(txt.includes('Round 2 - Top 10') || txt.includes('Final - Top 10')){
+      let tableContainer = div.nextElementSibling;
+      if(tableContainer && !tableContainer.querySelector('.wm-middle-large')){
+        // tableContainer is likely the table wrapper
+        let parent = tableContainer.parentElement;
+        if(parent && !parent.querySelector('.wm-middle-large')){
+          // If parent is the sheet
+          addToSheet(parent, false);
+        }
+      }
+    }
+  });
+  
+  // Directly find the containers that hold the Round 2 and Final tables by searching for their headers
+  let headers = document.querySelectorAll('*');
+  headers.forEach(h=>{
+    if(h.textContent && h.textContent.trim().startsWith('Round 2 - Top 10')){
+      let sheet = h.closest('div');
+      if(sheet){
+        let next = sheet.nextElementSibling;
+        while(next){
+          if(next.querySelector('table') || next.tagName==='TABLE'){
+            if(!next.querySelector('.wm-middle-large')) addToSheet(next, false);
+            break;
+          }
+          next = next.nextElementSibling;
+        }
+        if(!sheet.querySelector('.wm-middle-large')) addToSheet(sheet.parentElement, false);
+      }
+    }
+    if(h.textContent && h.textContent.trim().startsWith('Final - Top 10')){
+      let sheet = h.closest('div');
+      if(sheet){
+        let next = sheet.nextElementSibling;
+        while(next){
+          if(next.querySelector('table') || next.tagName==='TABLE'){
+            if(!next.querySelector('.wm-middle-large')) addToSheet(next, false);
+            break;
+          }
+          next = next.nextElementSibling;
+        }
+        if(!sheet.querySelector('.wm-middle-large')) addToSheet(sheet.parentElement, false);
+      }
+    }
+  });
+}
+let origRenderWM2 = window.render;
+if(origRenderWM2){
+  window.render = function(){ origRenderWM2(); setTimeout(addWatermarkPerfect, 200); }
+}
+document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(addWatermarkPerfect, 800); });
+setTimeout(addWatermarkPerfect, 1500);
+setTimeout(addWatermarkPerfect, 2500);
+</script>
+
+
+<script>
+localStorage.setItem('kaalapoottu_v2', JSON.stringify([{"name": "പോത്ത് പൂട്ട് കമ്മറ്റി", "r1": "17.32", "fd1": "", "r2": "18.10", "fd2": "", "r3": "F", "fd3": ""}, {"name": "M ഇസ്മായിൽ കാവുംപുറം", "r1": "16.49", "fd1": "", "r2": "16.27", "fd2": "", "r3": "", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ Brothers തോട്ടപ്പായ", "r1": "16.80", "fd1": "", "r2": "16.36", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം", "r1": "17.02", "fd1": "", "r2": "F", "fd2": "14.77", "r3": "", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ", "r1": "16.32", "fd1": "", "r2": "15.99", "fd2": "", "r3": "16.76", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ ഹാജി വാണിയന്നൂർ", "r1": "16.40", "fd1": "", "r2": "15.79", "fd2": "", "r3": "15.64", "fd3": ""}, {"name": "അലി അക്ബർ കൊപ്പം പുലാശ്ശേരി", "r1": "16.69", "fd1": "", "r2": "16.17", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മുഹമ്മദ് ജുനൈസ് കുന്നക്കാവ്", "r1": "15.31", "fd1": "", "r2": "F", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മാനുപ്പ കൊടക്കല്ല്", "r1": "20.16", "fd1": "", "r2": "14.77", "fd2": "", "r3": "F", "fd3": ""}, {"name": "മാളിയേക്കൽ ഷാനുമോൻ വലമ്പൂർ", "r1": "15.42", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ബാവ പാങ്ങ്", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ പി ബക്കർ വാഴാങ്കട", "r1": "16.85", "fd1": "", "r2": "17.10", "fd2": "", "r3": "16.77", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം 2", "r1": "18.03", "fd1": "", "r2": "16.98", "fd2": "", "r3": "F", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട്", "r1": "15.21", "fd1": "", "r2": "15.05", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം", "r1": "14.73", "fd1": "", "r2": "14.49", "fd2": "", "r3": "14.26", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ ബ്രദേഴ്സ് തോട്ടപ്പായ 2", "r1": "15.06", "fd1": "", "r2": "14.61", "fd2": "", "r3": "14.81", "fd3": ""}, {"name": "കമ്മറ്റി പാറമലങ്ങാടി", "r1": "16.81", "fd1": "", "r2": "16.34", "fd2": "", "r3": "16.49", "fd3": ""}, {"name": "ടി സലാം കരേക്കാട്", "r1": "15.81", "fd1": "", "r2": "15.39", "fd2": "", "r3": "F", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട", "r1": "14.73", "fd1": "", "r2": "15.08", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി", "r1": "15.37", "fd1": "", "r2": "F", "fd2": "15.00", "r3": "", "fd3": ""}, {"name": "പൂണേരി ഫായിസ് ഇരിങ്ങാവൂർ", "r1": "15.85", "fd1": "", "r2": "14.97", "fd2": "", "r3": "15.21", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 2", "r1": "17.01", "fd1": "", "r2": "16.48", "fd2": "", "r3": "16.67", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചിരട്ടമല", "r1": "15.17", "fd1": "", "r2": "15.17", "fd2": "", "r3": "", "fd3": ""}, {"name": "കുന്നത്ത് അലി ആലിപ്പറമ്പ്", "r1": "14.40", "fd1": "", "r2": "14.33", "fd2": "", "r3": "14.75", "fd3": ""}, {"name": "T ശുഹൈബ് മോൻ ഉടമല", "r1": "16.88", "fd1": "", "r2": "16.50", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കട്ടേക്കാട്ടുപറമ്പിൽ സെയ്താലിക്കുട്ടി കൊപ്പം", "r1": "15.05", "fd1": "", "r2": "14.89", "fd2": "", "r3": "14.84", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ വാണിയുന്നൂർ 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "M ഇസ്മയിൽ കാവുംപുറം 2", "r1": "15.22", "fd1": "", "r2": "15.52", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ 2", "r1": "16.18", "fd1": "", "r2": "F", "fd2": "15.99", "r3": "", "fd3": ""}, {"name": "മാങ്കുന്നിൽ മാനു ഹാജി കരേക്കാട്", "r1": "15.48", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മുടപ്പക്കാട് 2", "r1": "F", "fd1": "14.99", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കൊന്നക്കാട്ടിൽ തിണ്ടലം 3", "r1": "15.38", "fd1": "", "r2": "15.11", "fd2": "", "r3": "15.13", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട് 2", "r1": "15.16", "fd1": "", "r2": "15.09", "fd2": "", "r3": "14.71", "fd3": ""}, {"name": "M ബാസിൽ പാറമ്മലങ്ങാടി", "r1": "14.78", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "തെച്ചിക്കടം ബ്രദേഴ്സ് തോട്ടപ്പായ 3", "r1": "14.96", "fd1": "", "r2": "14.81", "fd2": "", "r3": "F", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 3", "r1": "16.05", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട 2", "r1": "14.70", "fd1": "", "r2": "14.66", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി 2", "r1": "14.96", "fd1": "", "r2": "14.92", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പുളിക്കത്തൊട്ടിൽ ലിൻഷാ ഫാത്തിമ കരിങ്കല്ലത്താണി", "r1": "14.91", "fd1": "", "r2": "14.42", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം 2", "r1": "14.81", "fd1": "", "r2": "14.69", "fd2": "", "r3": "14.43", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മൊടക്കാട് 3", "r1": "14.73", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചരട്ടാമല 2", "r1": "14.56", "fd1": "", "r2": "14.50", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കട്ടേക്കാട് പറമ്പിൽ സൈതാലിക്കുട്ടി കൊപ്പം 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}]));
+localStorage.setItem('kaalapoottu_malsaram', 'പോത്ത് പൂട്ട്');
+localStorage.setItem('kaalapoottu_sthalam', 'വളാഞ്ചേരി');
+localStorage.setItem('kaalapoottu_date', '2026-10-18');
+</script>
+
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+// LIVE SYNC - Data മാറ്റം ഇല്ല, Password Same
+const fbCfgLive={apiKey:"AIzaSyDVhzGZTenWHC5ypN8cr9htmY46Xfj7dRo",authDomain:"kalapoottu-pothupoottu-result.firebaseapp.com",databaseURL:"https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"kalapoottu-pothupoottu-result",storageBucket:"kalapoottu-pothupoottu-result.firebasestorage.app",messagingSenderId:"630570888101",appId:"1:630570888101:web:4d8b1234567890abcdef"};
+try{ if(!firebase.apps.length) firebase.initializeApp(fbCfgLive); }catch(e){}
+let fbDbLive = (typeof firebase!=='undefined' && firebase.database) ? firebase.database() : null;
+
+function getLiveData(){
+  try{
+    let v2 = localStorage.getItem('kaalapoottu_v2');
+    let parsed = v2 ? JSON.parse(v2) : data;
+    return {v2:parsed, malsaram:document.getElementById('malsaramInput')?.value||localStorage.getItem('kaalapoottu_malsaram')||'', sthalam:document.getElementById('sthalamInput')?.value||localStorage.getItem('kaalapoottu_sthalam')||'', date:document.getElementById('dateInput')?.value||localStorage.getItem('kaalapoottu_date')||'', ts:Date.now()};
+  }catch(e){ return {v2:data, ts:Date.now()}; }
+}
+
+function pushLiveAuto(){
+  try{
+    if(typeof isAdmin==='undefined' || !isAdmin) return;
+    let payload = getLiveData();
+    if(fbDbLive) fbDbLive.ref('kaalapoottu_live').set(payload);
+    else fetch(fbCfgLive.databaseURL+'/kaalapoottu_live.json',{method:'PUT',body:JSON.stringify(payload)});
+    console.log("Live pushed");
+  }catch(e){ console.log(e); }
+}
+
+function pullLiveAuto(snap){
+  try{
+    if(typeof isAdmin!=='undefined' && isAdmin) return;
+    let d = snap.val ? snap.val() : snap;
+    if(!d || !d.v2) return;
+    let newStr = JSON.stringify(d.v2);
+    let cur = localStorage.getItem('kaalapoottu_v2');
+    if(cur!==newStr){
+      localStorage.setItem('kaalapoottu_v2', newStr);
+      if(d.malsaram) localStorage.setItem('kaalapoottu_malsaram', d.malsaram);
+      if(d.sthalam) localStorage.setItem('kaalapoottu_sthalam', d.sthalam);
+      if(d.date) localStorage.setItem('kaalapoottu_date', d.date);
+      try{ data = d.v2; }catch(e){}
+      if(window.render) render();
+      setTimeout(()=>{ if(typeof addWatermarkPerfect==='function') addWatermarkPerfect(); },300);
+    }
+  }catch(e){}
+}
+
+// Auto push every 3 seconds when admin is typing
+setInterval(()=>{ if(typeof isAdmin!=='undefined' && isAdmin) pushLiveAuto(); },3000);
+
+// Listen for live updates
+try{ if(fbDbLive) fbDbLive.ref('kaalapoottu_live').on('value', pullLiveAuto); }catch(e){}
+
+// Polling fallback for viewers (if firebase not available)
+setInterval(async()=>{
+  if(typeof isAdmin!=='undefined' && isAdmin) return;
+  try{
+    let r=await fetch(fbCfgLive.databaseURL+'/kaalapoottu_live.json?t='+Date.now(),{cache:'no-store'});
+    let d=await r.json();
+    if(d) pullLiveAuto({val:()=>d});
+  }catch(e){}
+},4000);
+</script>
+
+
+<script>
+// History Management - Same size 200mm, no page size change
+let competitions=[];
+let currentId=null;
+
+function loadCompetitions(){
+ try{
+  let s=null;
+  try{ s=localStorage.getItem('pothpoott_history_v8'); }catch(e){ s=null; }
+  if(s){ try{ competitions=JSON.parse(s); }catch(e){ competitions=[]; } }
+  let hasData=false;
+  let bestComp=null;
+  if(competitions && competitions.length){
+    for(let c of competitions){
+      if(c.data && c.data.length && c.data.some(row=>row.name && row.name.trim()!="")){
+        hasData=true;
+        if(!bestComp) bestComp=c;
+        if(c.date==="2026-10-18") bestComp=c;
+      }
+    }
+  }
+  if(!competitions.length || !hasData){
+   competitions=[{id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"വളാഞ്ചേരി", date:"2026-10-18", data:JSON.parse(JSON.stringify(data)), ts:Date.now()}];
+   bestComp=competitions[0];
+  }
+  // If currentId points to empty, switch to bestComp
+  try{
+    let savedId=localStorage.getItem('pothpoott_currentId_v8');
+    if(savedId) currentId=parseInt(savedId);
+  }catch(e){}
+  let cur=competitions.find(c=>c.id==currentId);
+  if(!cur || !cur.data || !cur.data.some(r=>r.name && r.name.trim()!="")){
+    if(bestComp){
+      currentId=bestComp.id;
+      cur=bestComp;
+    }else{
+      currentId=competitions[0].id;
+      cur=competitions[0];
+    }
+  }
+  if(cur){ data=cur.data; }
+ }catch(e){
+  try{ data=JSON.parse(JSON.stringify(data)); }catch(e2){}
+ }
+ renderCompSelect();
+ try{ render(); }catch(e){}
+ try{ loadMetaDate(); }catch(e){}
+}
+
+
+
+
+function handleDateChange(val){
+ try{
+  localStorage.setItem('kaalapoottu_date', val);
+  let cur=competitions.find(c=>c.id==currentId);
+  if(cur){ cur.date=val; cur.ts=Date.now(); }
+  localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+  renderCompSelect();
+ }catch(e){}
+}
+function loadMetaDate(){
+ try{
+  let cur=competitions.find(c=>c.id==currentId);
+  let d = cur && cur.date ? cur.date : (localStorage.getItem('kaalapoottu_date') || "2026-10-18");
+  let mVal = cur && cur.malsaram ? cur.malsaram : (localStorage.getItem('kaalapoottu_malsaram')||"പോത്ത്പൂട്ട്");
+  let sVal = cur && cur.sthalam ? cur.sthalam : (localStorage.getItem('kaalapoottu_sthalam')||"വളാഞ്ചേരി");
+  let di=document.getElementById('dateInput');
+  if(di){ di.value=d; }
+  let mi=document.getElementById('malsaramInput');
+  if(mi){ mi.value=mVal; }
+  let si=document.getElementById('sthalamInput');
+  if(si){ si.value=sVal; }
+  try{lockMetaInputs();}catch(e){}
+ }catch(e){}
+}
+
+function saveCompetitions(){
+ try{
+  let cur=competitions.find(c=>c.id==currentId);
+  if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
+  localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+  localStorage.setItem('pothpoott_currentId_v8', currentId);
+  localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+  if(cur){
+   localStorage.setItem('kaalapoottu_malsaram', cur.malsaram);
+   localStorage.setItem('kaalapoottu_sthalam', cur.sthalam);
+   localStorage.setItem('kaalapoottu_date', cur.date);
+  }
+ }catch(e){}
+}
+
+function renderCompSelect(){
+ let sel=document.getElementById('compSelect'); if(!sel) return; sel.innerHTML="";
+ competitions.slice().sort((a,b)=>b.ts-a.ts).forEach(c=>{
+  let opt=document.createElement('option'); opt.value=c.id;
+  let label=`📅 ${c.date||''} - ${c.malsaram} ${c.sthalam?'('+c.sthalam+')':''} ${c.id==currentId?' - LIVE':''}`;
+  opt.textContent=label; if(c.id==currentId) opt.selected=true; sel.appendChild(opt);
+ });
+}
+
+function switchCompetition(id){
+ if(!id) return;
+ saveCompetitions();
+ currentId=parseInt(id);
+ let cur=competitions.find(c=>c.id==currentId);
+ if(cur){ data=cur.data; renderCompSelect(); render(); loadMetaDate(); }
+ saveCompetitions();
+}
+
+function createNewCompetition(){
+ if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം!"); return; }
+ let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
+ if(malsaram===null) return;
+ let sthalam=prompt("സ്ഥലം:", "");
+ if(sthalam===null) sthalam="";
+ let dateInput=prompt("തീയതി (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
+ if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
+ saveCompetitions();
+ let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
+ for(let i=0;i<15;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ competitions.unshift(newComp);
+ currentId=newComp.id;
+ data=newComp.data;
+ renderCompSelect(); render(); loadMetaDate(); saveCompetitions();
+ alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
+}
+
+
+function renameCompetition(){
+ if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
+ let cur=competitions.find(c=>c.id==currentId);
+ if(!cur) return;
+ let newName=prompt("പുതിയ പേര്:", cur.malsaram);
+ if(newName===null) return;
+ cur.malsaram=newName;
+ saveCompetitions(); renderCompSelect();
+}
+function deleteCompetition(){
+ if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
+ if(competitions.length<=1){ alert("അവസാനത്തെ ഷീറ്റ് Delete ചെയ്യാൻ പറ്റില്ല!"); return; }
+ let cur=competitions.find(c=>c.id==currentId);
+ let curName=cur? cur.malsaram+' '+(cur.sthalam||'') : 'ഈ മത്സരം';
+ if(!confirm("⚠️ '"+curName+"' Delete ചെയ്യണോ?")) return;
+ if(!confirm("അവസാന ഉറപ്പാണോ?")) return;
+ let idx=competitions.findIndex(c=>c.id==currentId);
+ if(idx>=0) competitions.splice(idx,1);
+ currentId=competitions[0].id;
+ data=competitions[0].data;
+ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+ localStorage.setItem('pothpoott_currentId_v8', currentId);
+ renderCompSelect(); render(); saveCompetitions();
+ alert("✅ Delete ചെയ്തു!");
+}
+
+function clearCurrent(){
+ if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
+ if(!confirm("ഈ മത്സരത്തിന്റെ ഡാറ്റ Clear ചെയ്യണോ?")) return;
+ data=[]; for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ render(); saveCompetitions();
+}
+
+function getAdminName(pwd){
+ let p=pwd.toLowerCase();
+ if(p=="unni0264") return "Unni";
+ if(p=="irfan2026") return "Irfa";
+ if(p=="shuh2026") return "Shuhaib";
+ return "Admin";
+}
+function showPwdBox(){
+ let b=document.getElementById("pwdBox"); if(!b) return;
+ b.classList.remove("pwd-box-hidden"); b.classList.add("pwd-box-visible");
+ let dot=document.getElementById("adminDot"); if(dot) dot.style.display="none";
+ let inp=document.getElementById("pwdInput"); if(inp) inp.focus();
+}
+</script>
+
+<script>
+function toggleLock(){
+ let pwdInput=document.getElementById("pwdInput");
+ let pwd=pwdInput.value.trim();
+ let btn=document.getElementById("lockBtn");
+ let status=document.getElementById("statusBar");
+ let badge=document.getElementById("liveBadge");
+ if(typeof isAdmin!=='undefined' && isAdmin){
+  isAdmin=false;
+  if(btn){ btn.textContent="🔒 Unlock"; btn.className="btn btn-lock"; }
+  if(status){ status.textContent="🔒 Locked - Viewers Only"; status.className="status locked"; }
+  if(badge){ badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; badge.style.color="#fff"; }
+  let pb=document.getElementById("pwdBox"); if(pb){ pb.classList.add("pwd-box-hidden"); pb.classList.remove("pwd-box-visible"); }
+  let ad=document.getElementById("adminDot"); if(ad) ad.style.display="block";
+  render(); try{loadMetaDate();}catch(e){} try{lockMetaInputs();}catch(e){} return;
+ }
+ if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
+  isAdmin=true;
+  let adminName=getAdminName(pwd);
+  if(btn){ btn.textContent="🔓 Locked"; btn.className="btn btn-unlock"; }
+  if(status){ status.textContent="✅ Unlocked - "+adminName; status.className="status unlocked"; }
+  if(badge){ badge.textContent="🔓 UNLOCKED - "+adminName; badge.style.background="#00e676"; badge.style.color="#000"; }
+  if(pwdInput) pwdInput.value="";
+  let pb=document.getElementById("pwdBox"); if(pb){ pb.classList.add("pwd-box-hidden"); pb.classList.remove("pwd-box-visible"); }
+  let ad=document.getElementById("adminDot"); if(ad) ad.style.display="block";
+  render(); try{loadMetaDate();}catch(e){} try{lockMetaInputs();}catch(e){}
+ }else{ alert("Password തെറ്റ്!"); if(pwdInput) pwdInput.value=""; }
+}
+loadCompetitions();
+</script>
+
+<style>
+/* Mobile Portrait Fix - Top10 Round 1 same as Round 2 and Final */
+@media screen and (max-width:768px){
+  body{overflow-x:hidden !important}
+  .table-wrap{overflow-x:auto !important;-webkit-overflow-scrolling:touch !important;display:block !important;width:100vw !important;max-width:100vw !important}
+  .table-wrap table{width:200mm !important;min-width:200mm !important;table-layout:fixed !important}
+  .top10-wrap{width:100vw !important;max-width:100vw !important;overflow:hidden !important;display:block !important}
+  .top10-wrap > div{width:100vw !important;max-width:100vw !important;overflow-x:auto !important;-webkit-overflow-scrolling:touch !important;display:block !important}
+  /* All 3 bordered boxes - Round1, Round2, Final - same behavior as bottom */
+  .top10-wrap > div > div[style*="border:2px"]{width:200mm !important;min-width:200mm !important;overflow-x:visible !important;display:block !important}
+  .top10-table{width:200mm !important;min-width:200mm !important;table-layout:fixed !important;display:table !important}
+  #top10R1, #top10R2, #top10Final{width:200mm !important;min-width:200mm !important;display:table !important;table-layout:fixed !important}
+  #top10R1 th, #top10R2 th, #top10Final th{font-size:10px !important;white-space:nowrap !important}
+  #top10R1 td, #top10R2 td, #top10Final td{font-size:11px !important;white-space:nowrap !important}
+  /* Ensure Round1 Name column same as Round2 - 115mm visible when scrolled */
+  #top10R1 th:nth-child(3), #top10R1 td:nth-child(3){width:115mm !important;min-width:115mm !important;max-width:115mm !important}
+}
+</style>
+
+</body></html>
