@@ -571,7 +571,7 @@ function handleFoulDetail(i,field,val){
 function render(){
  let tbody=document.getElementById('tbody'); tbody.innerHTML="";
  data.forEach((r,idx)=>{
-   let dis=isAdmin?"":"disabled";
+   let dis=isAdmin?"":"readonly";
    let f1=isFoul(r.r1), f2=isFoul(r.r2), f3=isFoul(r.r3);
    let c1=f1?"foul":"", c2=f1?"blocked":(f2?"foul":""), c3=(f1||f2)?"blocked":(f3?"foul":"");
    let subBlocked=f1||f2, gBlocked=f1||f2||f3;
