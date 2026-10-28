@@ -767,6 +767,12 @@ try{
 function pushLive(){
   if(!isLive || !liveRef || !isAdmin) return;
   try{
+    let hasData = data.some(r=> (r.name && r.name.trim()!=='') );
+    if(!hasData){ 
+      document.getElementById('liveStatus').textContent='⚠️ Data ഇല്ല - Push ചെയ്യുന്നില്ല, പഴയ Data സംരക്ഷിച്ചു';
+      document.getElementById('liveStatus').style.background='#ffeb3b';
+      return; 
+    }
     liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent});
     document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
     document.getElementById('liveStatus').style.background='#c8e6c9';
@@ -1013,6 +1019,9 @@ function getLiveData(){
 function pushLiveAuto(){
   try{
     if(typeof isAdmin==='undefined' || !isAdmin) return;
+    // FIX: Don't push if table is empty
+    let hasData = data.some(r=> (r.name && r.name.trim()!=='') || (r.r1 && r.r1.trim()!=='') );
+    if(!hasData){ console.log("Skip push - empty table, protecting old data"); return; }
     let payload = getLiveData();
     if(fbDbLive) fbDbLive.ref('kaalapoottu_live').set(payload);
     else fetch(fbCfgLive.databaseURL+'/kaalapoottu_live.json',{method:'PUT',body:JSON.stringify(payload)});
@@ -1283,5 +1292,47 @@ loadCompetitions();
   #top10R1 th:nth-child(3), #top10R1 td:nth-child(3){width:115mm !important;min-width:115mm !important;max-width:115mm !important}
 }
 </style>
+
+
+<script>
+// FIXED VERSION by Meta AI - Prevent data loss
+// Auto backup every 10 sec to a safe key that never gets cleared
+setInterval(()=>{
+  try{
+    let hasData = data.some(r=> r.name && r.name.trim()!=='');
+    if(hasData){
+      localStorage.setItem('pothpoott_backup_SAFE_'+new Date().toISOString().slice(0,10), JSON.stringify(data));
+      localStorage.setItem('pothpoott_last_backup', JSON.stringify({date:new Date().toISOString(), data:data}));
+      console.log("Safe backup done");
+    }
+  }catch(e){}
+},10000);
+
+// Restore function
+function restoreLastBackup(){
+  try{
+    let b = localStorage.getItem('pothpoott_last_backup');
+    if(!b){ alert("Backup ഒന്നും ഇല്ല!"); return; }
+    let obj = JSON.parse(b);
+    if(confirm("അവസാന Backup "+obj.date+" Restore ചെയ്യണോ?")){
+      data = obj.data;
+      render();
+      save();
+      alert("✅ Restore ചെയ്തു!");
+    }
+  }catch(e){ alert("Restore failed: "+e); }
+}
+// Add restore button to UI
+setTimeout(()=>{
+  let bar = document.getElementById('historyBar');
+  if(bar){
+    let btn = document.createElement('button');
+    btn.textContent = "♻️ Backup Restore";
+    btn.style.cssText = "background:#4caf50;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;flex:1";
+    btn.onclick = restoreLastBackup;
+    bar.querySelector('.history-btns')?.appendChild(btn);
+  }
+},1000);
+</script>
 
 </body></html>
