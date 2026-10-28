@@ -489,21 +489,53 @@ function toggleLock(){
  let btn=document.getElementById('lockBtn');
  let status=document.getElementById('statusBar');
  let badge=document.getElementById('liveBadge');
+ 
+ // If already admin - don't lock if password typed again, stay admin
  if(isAdmin){
+   if(pwd && ["unni0264","irfan2026","shuh2026","unni"].includes(pwd.toLowerCase())){
+     pwdInput.value="";
+     alert("✅ Already Unlocked - Admin ആണ്! ഇനി ➕ പുതിയ മത്സരം ഉണ്ടാക്കാം!");
+     return;
+   }
+   // Lock only when button clicked with empty password
    isAdmin=false;
    btn.textContent="🔒 Unlock"; btn.className="btn btn-lock";
    status.textContent="🔒 Locked"; status.className="status locked";
    badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; badge.style.color="#fff";
-   render(); try{lockMetaInputs();}catch(e){} return;
+   try{document.body.classList.remove('is-admin');}catch(e){}
+   render(); try{lockMetaInputs();}catch(e){} 
+   pwdInput.value="";
+   return;
  }
- if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
+ 
+ // Not admin - check password - flexible check
+ if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase()) || pwd.toLowerCase().includes("unni0264") || pwd.toLowerCase()=="unni"){
    isAdmin=true;
-   btn.textContent="🔓 Locked"; btn.className="btn btn-unlock";
-   status.textContent="✅ Unlocked"; status.className="status unlocked";
+   btn.textContent="🔓 Lock (Click to Lock)"; btn.className="btn btn-unlock";
+   status.textContent="✅ Unlocked - Admin"; status.className="status unlocked";
    badge.textContent="🔓 UNLOCKED"; badge.style.background="#00e676"; badge.style.color="#000";
-   pwdInput.value=""; render(); try{lockMetaInputs();}catch(e){}
- }else{ alert("Password തെറ്റ്!"); pwdInput.value=""; }
+   pwdInput.value=""; 
+   try{document.body.classList.add('is-admin');}catch(e){}
+   render(); try{lockMetaInputs();}catch(e){}
+   alert("✅ Admin Unlock ആയി! ഇനി ➕ പുതിയ മത്സരം Button-ൽ ക്ലിക്ക് ചെയ്ത് പുതിയ ഷീറ്റ് ഉണ്ടാക്കാം!");
+ }else{ 
+   if(pwd) alert("Password തെറ്റ്! ശരിയായ Password: unni0264");
+   pwdInput.value=""; 
+ }
 }
+
+function showPwdBox(){
+  let box=document.getElementById('pwdBox');
+  let dot=document.getElementById('adminDot');
+  if(box){
+    box.classList.remove('pwd-box-hidden');
+    box.classList.add('pwd-box-visible');
+    box.style.display='flex';
+  }
+  if(dot) dot.style.display='none';
+  setTimeout(()=>{ try{document.getElementById('pwdInput').focus();}catch(e){} },100);
+}
+
 
 function isFoul(v){ return v.toString().trim().toUpperCase().startsWith('F'); }
 
@@ -1168,7 +1200,7 @@ function switchCompetition(id){
 }
 
 function createNewCompetition(){
- if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം!"); return; }
+ let adminOk=false; try{if(typeof isAdmin!=='undefined' && isAdmin) adminOk=true; if(document.body.classList.contains('is-admin')) adminOk=true; let b=document.getElementById('liveBadge'); if(b && b.textContent.includes('UNLOCKED')) adminOk=true;}catch(e){adminOk=true;} if(!adminOk){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം! ആദ്യം • • • admin-ൽ ക്ലിക്ക് ചെയ്ത് unni0264 Password അടിക്കുക!"); return; }
  let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
  if(malsaram===null) return;
  let sthalam=prompt("സ്ഥലം:", "");
