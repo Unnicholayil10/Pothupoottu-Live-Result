@@ -474,6 +474,46 @@ function exportForGitHub(){
 <!-- Clear All button disabled as per user request -->
 <button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
 <button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
+
+<button onclick="copy44NamesToCurrent()" style="background:#2e7d32;color:#fff;border:2px solid #000;padding:8px 12px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer;margin:4px">📋 44 പേരുകൾ Copy ചെയ്യുക</button>
+<script>
+function copy44NamesToCurrent(){
+  if(!confirm("Original 44 പേരുകൾ ഈ പുതിയ പേജിലേക്ക് Copy ചെയ്യണോ? സമയം കാലി ആയിരിക്കും, പേര് മാത്രം വരും")){
+    return;
+  }
+  try{
+    if(!window.ORIGINAL_44_DATA || window.ORIGINAL_44_DATA.length==0){
+      alert("Original 44 Data കിട്ടിയില്ല!");
+      return;
+    }
+    // Copy only names, clear times
+    for(let i=0;i<44;i++){
+      if(i < window.ORIGINAL_44_DATA.length){
+        data[i] = {
+          name: window.ORIGINAL_44_DATA[i].name || "",
+          r1: "", r2: "", r3: "", fd1: "", fd2: "", fd3: ""
+        };
+      } else {
+        data[i] = {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""};
+      }
+    }
+    // Save to current competition
+    let cur = competitions.find(c=>c.id==currentId);
+    if(cur){
+      cur.data = JSON.parse(JSON.stringify(data));
+    }
+    try{
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+    }catch(e){}
+    render();
+    alert("✅ 44 പേരുകൾ Copy ആയി! ഇനി സമയം അടിക്കാം!");
+  }catch(e){
+    alert("Error: " + e.message);
+  }
+}
+</script>
+
 <input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value);}catch(e){}">
 <input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value);}catch(e){}">
 <input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
