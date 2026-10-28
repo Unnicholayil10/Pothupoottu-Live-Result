@@ -356,6 +356,12 @@ table.top10-table thead tr th:nth-child(3){
 
 </head><body>
 
+<script>
+// __EMBEDDED_HISTORY_PLACEHOLDER__
+window.__EMBEDDED_HISTORY__ = window.__EMBEDDED_HISTORY__ || null;
+</script>
+
+
 <style>
 /* ONLY CHANGE: Hide password box for viewers */
 .pwd-box-hidden{ display:none !important; }
@@ -417,23 +423,42 @@ document.addEventListener('DOMContentLoaded', function(){
 <button onclick="exportForGitHub()" style="flex:1;background:#ff6f00;color:#fff;border:2px solid #000;padding:12px;border-radius:8px;font-weight:900;cursor:pointer">📤 GitHub Export</button>
 </div>
 <script>
-function forceRestore44(){
-  localStorage.removeItem('kaalapoottu_v2');
-  localStorage.removeItem('pothpoott_history_v8');
-  localStorage.removeItem('pothpoott_currentId_v8');
-  location.reload();
-}
+
+
 function exportForGitHub(){
   try{
-    saveCompetitions();
+    if(typeof saveCompetitions==='function') saveCompetitions();
+    let hist = [];
+    try{ hist = JSON.parse(localStorage.getItem('pothpoott_history_v8')||'[]'); }catch(e){ hist = competitions||[]; }
+    if(!hist || hist.length==0) hist = competitions||[];
+    // Deep clone and ensure data safe
+    hist = JSON.parse(JSON.stringify(hist));
+    console.log("Exporting", hist.length, "competitions");
+    
     let html = document.documentElement.outerHTML;
+    // Replace the embedded history placeholder with actual data
+    let embeddedCode = "window.__EMBEDDED_HISTORY__ = " + JSON.stringify(hist) + ";";
+    // If placeholder exists, replace it, else inject before loadCompetitions
+    if(html.includes("__EMBEDDED_HISTORY_PLACEHOLDER__")){
+      html = html.replace("// __EMBEDDED_HISTORY_PLACEHOLDER__", embeddedCode);
+    } else if(html.includes("window.__EMBEDDED_HISTORY__ = window.__EMBEDDED_HISTORY__ || null;")){
+      html = html.replace("window.__EMBEDDED_HISTORY__ = window.__EMBEDDED_HISTORY__ || null;", embeddedCode);
+    }
+    
     let blob = new Blob([html], {type:'text/html'});
     let url = URL.createObjectURL(blob);
-    let a=document.createElement('a'); a.href=url; a.download='index.html'; a.click();
+    let a=document.createElement('a'); 
+    a.href=url; 
+    a.download='index.html'; 
+    a.click();
     URL.revokeObjectURL(url);
-    alert("✅ Download ആയി - ഇത് GitHub ൽ ഇടുക");
-  }catch(e){ alert(e.message); }
+    alert("✅ "+hist.length+" മത്സരങ്ങൾ ഉള്ള ഫയൽ Download ആയി
+
+ഇത് GitHub ൽ upload ചെയ്താൽ പബ്ലിക്കിന് എല്ലാ പഴയ റിസൾട്ടും കാണാം!");
+  }catch(e){ alert("Export Error: " + e.message); console.error(e); }
 }
+
+
 </script>
 
 <div class="history-bar" id="historyBar">
@@ -763,8 +788,170 @@ setTimeout(function(){ try{lockMetaInputs();}catch(e){} }, 800);
 
 
 <!-- Firebase Live - No Size Change -->
-<!-- Firebase disabled for 100% data safety -->
-<!-- Firebase disabled for 100% data safety -->
+
+<!-- SAFE Firebase Live - 44 data never overwritten by empty -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const fbCfgLive = {
+  apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+  authDomain: "kalapoottu-pothupoottu-result.firebaseapp.com",
+  databaseURL: "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kalapoottu-pothupoottu-result"
+};
+let fbDbLive = null;
+try {
+  if(!firebase.apps.length) firebase.initializeApp(fbCfgLive);
+  fbDbLive = firebase.database();
+  console.log("Firebase Live Connected");
+} catch(e){ console.log("Firebase init skip", e); }
+
+function getLiveData(){
+  try{
+    return {
+      v2: JSON.parse(JSON.stringify(data)),
+      competitions: JSON.parse(JSON.stringify(competitions||[])),
+      currentId: currentId,
+      ts: Date.now()
+    };
+  }catch(e){ return {v2:data, ts:Date.now()}; }
+}
+
+function pushLiveAuto(){
+  if(!fbDbLive) return;
+  if(!isAdmin) return; // Only admin pushes
+  try{
+    fbDbLive.ref('kaalapoottu_live').set(getLiveData());
+  }catch(e){ console.error("pushLive fail", e); }
+}
+
+function pullLiveAuto(){
+  // Public pulls, but SAFE: only overwrite if Firebase has real names
+  if(isAdmin) return; // Admin don't pull (avoid loop)
+  const url = "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json";
+  fetch(url + "?t=" + Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d) return;
+      if(d.v2 && Array.isArray(d.v2) && d.v2.length>0){
+        // Check if firebase has at least 1 real name
+        let hasNames = d.v2.some(row=>row && row.name && row.name.trim()!="");
+        if(!hasNames) {
+          console.log("Firebase empty, ignoring to protect 44 data");
+          return;
+        }
+        console.log("Live update from Firebase");
+        data = JSON.parse(JSON.stringify(d.v2));
+        if(d.competitions && d.competitions.length>0){
+          // Also update competitions history if firebase has it
+          try{
+            let fbComps = d.competitions;
+            if(fbComps.some(c=>c.data && c.data.some(r=>r.name))){
+              competitions = JSON.parse(JSON.stringify(fbComps));
+              if(d.currentId) currentId = d.currentId;
+              localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+              localStorage.setItem('pothpoott_currentId_v8', String(currentId));
+            }
+          }catch(e){}
+        }
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+        renderCompSelect();
+        render();
+      }
+    }).catch(e=>{ /* silent */ });
+}
+
+// Auto pull every 5 seconds for public
+setInterval(()=>{ if(!isAdmin) pullLiveAuto(); }, 5000);
+// Initial pull after 2 sec
+setTimeout(()=>{ if(!isAdmin) pullLiveAuto(); }, 2000);
+
+// Auto push every 5 sec for admin
+setInterval(()=>{ if(isAdmin) pushLiveAuto(); }, 5000);
+</script>
+
+
+<!-- SAFE Firebase Live - 44 data never overwritten by empty -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const fbCfgLive = {
+  apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+  authDomain: "kalapoottu-pothupoottu-result.firebaseapp.com",
+  databaseURL: "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kalapoottu-pothupoottu-result"
+};
+let fbDbLive = null;
+try {
+  if(!firebase.apps.length) firebase.initializeApp(fbCfgLive);
+  fbDbLive = firebase.database();
+  console.log("Firebase Live Connected");
+} catch(e){ console.log("Firebase init skip", e); }
+
+function getLiveData(){
+  try{
+    return {
+      v2: JSON.parse(JSON.stringify(data)),
+      competitions: JSON.parse(JSON.stringify(competitions||[])),
+      currentId: currentId,
+      ts: Date.now()
+    };
+  }catch(e){ return {v2:data, ts:Date.now()}; }
+}
+
+function pushLiveAuto(){
+  if(!fbDbLive) return;
+  if(!isAdmin) return; // Only admin pushes
+  try{
+    fbDbLive.ref('kaalapoottu_live').set(getLiveData());
+  }catch(e){ console.error("pushLive fail", e); }
+}
+
+function pullLiveAuto(){
+  // Public pulls, but SAFE: only overwrite if Firebase has real names
+  if(isAdmin) return; // Admin don't pull (avoid loop)
+  const url = "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json";
+  fetch(url + "?t=" + Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d) return;
+      if(d.v2 && Array.isArray(d.v2) && d.v2.length>0){
+        // Check if firebase has at least 1 real name
+        let hasNames = d.v2.some(row=>row && row.name && row.name.trim()!="");
+        if(!hasNames) {
+          console.log("Firebase empty, ignoring to protect 44 data");
+          return;
+        }
+        console.log("Live update from Firebase");
+        data = JSON.parse(JSON.stringify(d.v2));
+        if(d.competitions && d.competitions.length>0){
+          // Also update competitions history if firebase has it
+          try{
+            let fbComps = d.competitions;
+            if(fbComps.some(c=>c.data && c.data.some(r=>r.name))){
+              competitions = JSON.parse(JSON.stringify(fbComps));
+              if(d.currentId) currentId = d.currentId;
+              localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+              localStorage.setItem('pothpoott_currentId_v8', String(currentId));
+            }
+          }catch(e){}
+        }
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+        renderCompSelect();
+        render();
+      }
+    }).catch(e=>{ /* silent */ });
+}
+
+// Auto pull every 5 seconds for public
+setInterval(()=>{ if(!isAdmin) pullLiveAuto(); }, 5000);
+// Initial pull after 2 sec
+setTimeout(()=>{ if(!isAdmin) pullLiveAuto(); }, 2000);
+
+// Auto push every 5 sec for admin
+setInterval(()=>{ if(isAdmin) pushLiveAuto(); }, 5000);
+</script>
+
 <script>
 // Firebase Config - User needs to replace with own project for Live
 // For demo, using public test DB - replace with your own for production
@@ -1024,8 +1211,170 @@ localStorage.setItem('kaalapoottu_date', '2026-10-18');
 </script>
 
 
-<!-- Firebase disabled for 100% data safety -->
-<!-- Firebase disabled for 100% data safety -->
+
+<!-- SAFE Firebase Live - 44 data never overwritten by empty -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const fbCfgLive = {
+  apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+  authDomain: "kalapoottu-pothupoottu-result.firebaseapp.com",
+  databaseURL: "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kalapoottu-pothupoottu-result"
+};
+let fbDbLive = null;
+try {
+  if(!firebase.apps.length) firebase.initializeApp(fbCfgLive);
+  fbDbLive = firebase.database();
+  console.log("Firebase Live Connected");
+} catch(e){ console.log("Firebase init skip", e); }
+
+function getLiveData(){
+  try{
+    return {
+      v2: JSON.parse(JSON.stringify(data)),
+      competitions: JSON.parse(JSON.stringify(competitions||[])),
+      currentId: currentId,
+      ts: Date.now()
+    };
+  }catch(e){ return {v2:data, ts:Date.now()}; }
+}
+
+function pushLiveAuto(){
+  if(!fbDbLive) return;
+  if(!isAdmin) return; // Only admin pushes
+  try{
+    fbDbLive.ref('kaalapoottu_live').set(getLiveData());
+  }catch(e){ console.error("pushLive fail", e); }
+}
+
+function pullLiveAuto(){
+  // Public pulls, but SAFE: only overwrite if Firebase has real names
+  if(isAdmin) return; // Admin don't pull (avoid loop)
+  const url = "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json";
+  fetch(url + "?t=" + Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d) return;
+      if(d.v2 && Array.isArray(d.v2) && d.v2.length>0){
+        // Check if firebase has at least 1 real name
+        let hasNames = d.v2.some(row=>row && row.name && row.name.trim()!="");
+        if(!hasNames) {
+          console.log("Firebase empty, ignoring to protect 44 data");
+          return;
+        }
+        console.log("Live update from Firebase");
+        data = JSON.parse(JSON.stringify(d.v2));
+        if(d.competitions && d.competitions.length>0){
+          // Also update competitions history if firebase has it
+          try{
+            let fbComps = d.competitions;
+            if(fbComps.some(c=>c.data && c.data.some(r=>r.name))){
+              competitions = JSON.parse(JSON.stringify(fbComps));
+              if(d.currentId) currentId = d.currentId;
+              localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+              localStorage.setItem('pothpoott_currentId_v8', String(currentId));
+            }
+          }catch(e){}
+        }
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+        renderCompSelect();
+        render();
+      }
+    }).catch(e=>{ /* silent */ });
+}
+
+// Auto pull every 5 seconds for public
+setInterval(()=>{ if(!isAdmin) pullLiveAuto(); }, 5000);
+// Initial pull after 2 sec
+setTimeout(()=>{ if(!isAdmin) pullLiveAuto(); }, 2000);
+
+// Auto push every 5 sec for admin
+setInterval(()=>{ if(isAdmin) pushLiveAuto(); }, 5000);
+</script>
+
+
+<!-- SAFE Firebase Live - 44 data never overwritten by empty -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const fbCfgLive = {
+  apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+  authDomain: "kalapoottu-pothupoottu-result.firebaseapp.com",
+  databaseURL: "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kalapoottu-pothupoottu-result"
+};
+let fbDbLive = null;
+try {
+  if(!firebase.apps.length) firebase.initializeApp(fbCfgLive);
+  fbDbLive = firebase.database();
+  console.log("Firebase Live Connected");
+} catch(e){ console.log("Firebase init skip", e); }
+
+function getLiveData(){
+  try{
+    return {
+      v2: JSON.parse(JSON.stringify(data)),
+      competitions: JSON.parse(JSON.stringify(competitions||[])),
+      currentId: currentId,
+      ts: Date.now()
+    };
+  }catch(e){ return {v2:data, ts:Date.now()}; }
+}
+
+function pushLiveAuto(){
+  if(!fbDbLive) return;
+  if(!isAdmin) return; // Only admin pushes
+  try{
+    fbDbLive.ref('kaalapoottu_live').set(getLiveData());
+  }catch(e){ console.error("pushLive fail", e); }
+}
+
+function pullLiveAuto(){
+  // Public pulls, but SAFE: only overwrite if Firebase has real names
+  if(isAdmin) return; // Admin don't pull (avoid loop)
+  const url = "https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json";
+  fetch(url + "?t=" + Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d) return;
+      if(d.v2 && Array.isArray(d.v2) && d.v2.length>0){
+        // Check if firebase has at least 1 real name
+        let hasNames = d.v2.some(row=>row && row.name && row.name.trim()!="");
+        if(!hasNames) {
+          console.log("Firebase empty, ignoring to protect 44 data");
+          return;
+        }
+        console.log("Live update from Firebase");
+        data = JSON.parse(JSON.stringify(d.v2));
+        if(d.competitions && d.competitions.length>0){
+          // Also update competitions history if firebase has it
+          try{
+            let fbComps = d.competitions;
+            if(fbComps.some(c=>c.data && c.data.some(r=>r.name))){
+              competitions = JSON.parse(JSON.stringify(fbComps));
+              if(d.currentId) currentId = d.currentId;
+              localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+              localStorage.setItem('pothpoott_currentId_v8', String(currentId));
+            }
+          }catch(e){}
+        }
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+        renderCompSelect();
+        render();
+      }
+    }).catch(e=>{ /* silent */ });
+}
+
+// Auto pull every 5 seconds for public
+setInterval(()=>{ if(!isAdmin) pullLiveAuto(); }, 5000);
+// Initial pull after 2 sec
+setTimeout(()=>{ if(!isAdmin) pullLiveAuto(); }, 2000);
+
+// Auto push every 5 sec for admin
+setInterval(()=>{ if(isAdmin) pushLiveAuto(); }, 5000);
+</script>
+
 <script>
 // LIVE SYNC - Data മാറ്റം ഇല്ല, Password Same
 // Firebase DISABLED - No auto overwrite, 44 data always safe
@@ -1046,6 +1395,12 @@ function loadCompetitions(){
  try{
   let s=null;
   try{ s=localStorage.getItem('pothpoott_history_v8'); }catch(e){}
+  if(window.__EMBEDDED_HISTORY__ && window.__EMBEDDED_HISTORY__.length>0 && !s){
+    console.log("Using embedded history");
+    competitions = JSON.parse(JSON.stringify(window.__EMBEDDED_HISTORY__));
+    localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+    s = localStorage.getItem('pothpoott_history_v8');
+  }
   if(s){ try{ competitions=JSON.parse(s); }catch(e){ competitions=[]; } }
   if(!competitions || !competitions.length){
    competitions=[{id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"വളാഞ്ചേരി", date:"2026-10-18", data:JSON.parse(JSON.stringify(data)), ts:Date.now()}];
@@ -1059,7 +1414,8 @@ function loadCompetitions(){
     currentId=competitions[0].id;
   }
   let cur=competitions.find(c=>c.id==currentId);
-  if(cur && cur.data && cur.data.length && cur.data.some(r=>r.name && r.name.trim()!="")){
+  // FIX: Always use cur.data even if empty - this ensures new page is blank, not old data
+  if(cur && cur.data && cur.data.length){
     data=JSON.parse(JSON.stringify(cur.data));
   }
  }catch(e){ console.error(e); }
@@ -1126,8 +1482,9 @@ function switchCompetition(id){
  currentId=parseInt(id);
  let cur=competitions.find(c=>c.id==currentId);
  if(cur){
+  // FIX: Always show this competition's data, even if empty - ensures new page blank
   data=JSON.parse(JSON.stringify(cur.data));
-  while(data.length<15) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+  while(data.length<44) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
   renderCompSelect();
   render();
   loadMetaDate();
@@ -1145,13 +1502,24 @@ function createNewCompetition(){
  let dateInput=prompt("തീയതി (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
  if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
  saveCompetitions();
+ // NEW: 44 rows blank, but copy names from previous competition if exists (times cleared)
+ let prevNames = [];
+ try{
+   if(data && data.length) prevNames = data.map(r=>r.name||"");
+ }catch(e){}
  let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<15;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ // Create 44 blank rows - names empty, so truly blank new page (as user requested)
+ for(let i=0;i<44;i++){
+   let nm = ""; // Keep blank for truly new page - user wants blank, not old
+   // If you want to keep names from previous, uncomment next line:
+   // nm = (prevNames[i]||"");
+   newComp.data.push({name:nm,r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ }
  competitions.unshift(newComp);
  currentId=newComp.id;
- data=newComp.data;
+ data=JSON.parse(JSON.stringify(newComp.data));
  renderCompSelect(); render(); loadMetaDate(); saveCompetitions();
- alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
+ alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പുതിയ പേജ് blank ആണ് - പുതിയ പേരുകൾ അടിക്കാം! പഴയത് dropdown-ൽ safe ആയി ഉണ്ട്!");
 }
 
 
