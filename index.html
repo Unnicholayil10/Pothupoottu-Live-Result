@@ -354,17 +354,6 @@ table.top10-table thead tr th:nth-child(3){
 }
 </style>
 
-
-<style id="final-100-fix">
-/* 100% FIXED - Public can ALWAYS see old results */
-#historyBar{display:flex !important; flex-direction:column !important; width:200mm !important; max-width:200mm !important; margin:0 auto !important; background:#fffde7 !important; border:2px solid #7a1f1f !important; border-bottom:none !important; padding:0 !important}
-#compSelect{display:block !important; padding:8px !important; border:2px solid #7a1f1f !important; background:#fff !important; font-weight:900 !important; min-width:200px !important}
-/* Public read-only, admin editable */
-body:not(.is-admin) #tbody input{pointer-events:none !important; background:#f9f9f9 !important}
-body:not(.is-admin) input.meta-input{pointer-events:none !important; background:#f5f5f5 !important}
-body.is-admin #tbody input{pointer-events:auto !important; background:#fff !important}
-body.is-admin input.meta-input{pointer-events:auto !important; background:#fff !important}
-</style>
 </head><body>
 
 <style>
@@ -494,143 +483,27 @@ try{
 
 function save(){ try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); saveCompetitions(); }catch(e){} }
 
-// 100% FIXED - Admin password lock bug fixed
 function toggleLock(){
  let pwdInput=document.getElementById('pwdInput');
  let pwd=pwdInput.value.trim();
  let btn=document.getElementById('lockBtn');
  let status=document.getElementById('statusBar');
  let badge=document.getElementById('liveBadge');
- 
  if(isAdmin){
-   // If already admin and typed correct password again, stay admin
-   if(pwd && ["unni0264","irfan2026","shuh2026","unni"].includes(pwd.toLowerCase())){
-     pwdInput.value="";
-     alert("✅ Already Admin - Unlock ആണ്! ➕ പുതിയ മത്സരം ഉണ്ടാക്കാം!");
-     return;
-   }
-   // Lock
    isAdmin=false;
    btn.textContent="🔒 Unlock"; btn.className="btn btn-lock";
    status.textContent="🔒 Locked"; status.className="status locked";
    badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; badge.style.color="#fff";
-   try{document.body.classList.remove('is-admin');}catch(e){}
-   render(); try{lockMetaInputs();}catch(e){}
-   pwdInput.value="";
-   return;
+   render(); try{lockMetaInputs();}catch(e){} return;
  }
- 
- if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase()) || pwd.toLowerCase()=="unni0264" || pwd.toLowerCase().includes("unni")){
+ if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
    isAdmin=true;
-   btn.textContent="🔓 Lock (Click to Lock)"; btn.className="btn btn-unlock";
-   status.textContent="✅ Unlocked - Admin"; status.className="status unlocked";
+   btn.textContent="🔓 Locked"; btn.className="btn btn-unlock";
+   status.textContent="✅ Unlocked"; status.className="status unlocked";
    badge.textContent="🔓 UNLOCKED"; badge.style.background="#00e676"; badge.style.color="#000";
-   pwdInput.value="";
-   try{document.body.classList.add('is-admin');}catch(e){}
-   render(); try{lockMetaInputs();}catch(e){}
-   alert("✅ Admin Unlock! ➕ പുതിയ മത്സരം Button-ൽ Click ചെയ്ത് പുതിയ Sheet ഉണ്ടാക്കാം!");
- }else{
-   if(pwd) alert("Password തെറ്റ്! ശരി: unni0264");
-   pwdInput.value="";
- }
+   pwdInput.value=""; render(); try{lockMetaInputs();}catch(e){}
+ }else{ alert("Password തെറ്റ്!"); pwdInput.value=""; }
 }
-
-function showPwdBox(){
-  let box=document.getElementById('pwdBox');
-  let dot=document.getElementById('adminDot');
-  if(box){
-    box.classList.remove('pwd-box-hidden');
-    box.classList.add('pwd-box-visible');
-    box.style.display='flex';
-  }
-  if(dot) dot.style.display='none';
-  setTimeout(()=>{ try{document.getElementById('pwdInput').focus();}catch(e){} },100);
-}
-
-// 100% FIXED - Public can select old results, date/place bug fixed
-function selectCompetition(id){
-  try{
-    let idNum=parseInt(id);
-    if(!idNum) return;
-    currentId=idNum;
-    let cur=competitions.find(c=>c.id==idNum);
-    if(!cur) return;
-    data=cur.data;
-    try{ localStorage.setItem('pothpoott_currentId_v8', currentId); }catch(e){}
-    // FIXED - Date, place, malsaram 100% changes
-    let mi=document.getElementById('malsaramInput');
-    let si=document.getElementById('sthalamInput');
-    let di=document.getElementById('dateInput');
-    if(mi) mi.value=cur.malsaram||'';
-    if(si) si.value=cur.sthalam||'';
-    if(di) di.value=cur.date||'';
-    render();
-    renderCompSelect();
-    console.log('✅ Selected', cur.malsaram, cur.sthalam, cur.date);
-  }catch(e){ console.log(e); }
-}
-
-function renderCompSelect(){
- try{
-   let sel=document.getElementById('compSelect');
-   if(!sel){
-     let hb=document.getElementById('historyBar');
-     if(!hb) return;
-     // Create dropdown if not exists
-     let existing = hb.querySelector('#compSelect');
-     if(existing) sel=existing;
-     else{
-       let div=document.createElement('div');
-       div.style.cssText='display:flex;gap:8px;align-items:center;padding:6px;background:#fffde7;border-bottom:2px solid #7a1f1f;width:100%';
-       div.innerHTML='<label style="font-weight:900;font-size:13px;white-space:nowrap">📋 പഴയ മത്സരങ്ങൾ:</label><select id="compSelect" onchange="selectCompetition(this.value)" style="flex:1;padding:8px;border:2px solid #7a1f1f;font-weight:900;font-size:13px;min-width:200px"></select><span style="font-size:10px;color:#7a1f1f">👁️ Public can view</span>';
-       hb.insertBefore(div, hb.firstChild);
-       sel=document.getElementById('compSelect');
-     }
-   }
-   if(!sel) return;
-   sel.innerHTML='';
-   if(!competitions || !competitions.length){
-     let opt=document.createElement('option'); opt.textContent='മത്സരങ്ങളില്ല'; sel.appendChild(opt); return;
-   }
-   competitions.forEach(c=>{
-     let opt=document.createElement('option');
-     opt.value=c.id;
-     opt.textContent=(c.malsaram||'പോത്ത്പൂട്ട്')+' - '+(c.sthalam||'')+' ('+(c.date||'')+')';
-     if(c.id==currentId) opt.selected=true;
-     sel.appendChild(opt);
-   });
- }catch(e){ console.log('renderCompSelect error', e); }
-}
-
-function createNewCompetition(){
- let ok=false;
- try{
-   if(typeof isAdmin!=='undefined' && isAdmin) ok=true;
-   if(document.body.classList.contains('is-admin')) ok=true;
-   let b=document.getElementById('liveBadge');
-   if(b && b.textContent.includes('UNLOCKED')) ok=true;
- }catch(e){ ok=true; }
- if(!ok){ alert("അഡ്മിൻ മാത്രം! ആദ്യം • • • admin-ൽ ക്ലിക്ക് ചെയ്ത് unni0264 Password അടിക്കുക!"); return; }
- let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
- if(malsaram===null) return;
- let sthalam=prompt("സ്ഥലം:", "");
- if(sthalam===null) sthalam="";
- let dateInput=prompt("തീയതി (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
- if(dateInput===null || !dateInput.trim()) dateInput=new Date().toISOString().slice(0,10);
- try{ saveCompetitions(); }catch(e){}
- let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<44;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
- competitions.unshift(newComp);
- currentId=newComp.id;
- data=newComp.data;
- try{
-   localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-   localStorage.setItem('pothpoott_currentId_v8', currentId);
- }catch(e){}
- renderCompSelect(); render(); loadMetaDate();
- alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
-}
-
 
 function isFoul(v){ return v.toString().trim().toUpperCase().startsWith('F'); }
 
@@ -1206,11 +1079,7 @@ function loadCompetitions(){
     }
   }
   if(!competitions.length || !hasData){
-   let embeddedData=JSON.parse(JSON.stringify(data));
-   competitions=[
-     {id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"വളാഞ്ചേരി", date:"2026-10-18", data:JSON.parse(JSON.stringify(embeddedData)), ts:Date.now()},
-     {id:Date.now()+1, malsaram:"പോത്ത്പൂട്ട് - പഴയ മത്സരം", sthalam:"മഞ്ചേരി", date:"2026-10-10", data:JSON.parse(JSON.stringify(embeddedData)), ts:Date.now()-86400000}
-   ];
+   competitions=[{id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"വളാഞ്ചേരി", date:"2026-10-18", data:JSON.parse(JSON.stringify(data)), ts:Date.now()}];
    bestComp=competitions[0];
   }
   // If currentId points to empty, switch to bestComp
