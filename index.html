@@ -354,6 +354,23 @@ table.top10-table thead tr th:nth-child(3){
 }
 </style>
 
+
+<style id="public-history-visible">
+/* Public can see history - ALWAYS visible */
+#historyBar{display:flex !important; flex-direction:column !important; width:200mm !important; max-width:200mm !important; margin:0 auto !important; background:#fffde7 !important; border:2px solid #7a1f1f !important; padding:6px !important}
+#historyBar > div{width:100% !important}
+#compSelect, select{ display:block !important; min-width:200px; padding:8px 12px; font-size:14px; font-weight:900; border:2px solid #7a1f1f; background:#fff; color:#000; margin:4px 0; }
+.history-btns{display:flex !important; gap:6px; flex-wrap:wrap; margin:4px 0}
+/* Public read-only */
+body:not(.is-admin) #tbody input{pointer-events:none !important; background:#f9f9f9 !important}
+body:not(.is-admin) input.meta-input{pointer-events:none !important; background:#f5f5f5 !important}
+/* Admin editable */
+body.is-admin #tbody input{pointer-events:auto !important; background:#fff !important}
+body.is-admin input.meta-input{pointer-events:auto !important; background:#fff !important}
+/* Public can see dropdown but cannot edit buttons */
+body:not(.is-admin) .history-btns button{opacity:0.5; pointer-events:none}
+body.is-admin .history-btns button{opacity:1; pointer-events:auto}
+</style>
 </head><body>
 
 <style>
@@ -1182,6 +1199,40 @@ function saveCompetitions(){
 }
 
 function renderCompSelect(){
+ try{
+   let sel=document.getElementById('compSelect');
+   if(!sel){
+     // Create compSelect if not exists
+     let historyBar=document.getElementById('historyBar');
+     if(historyBar){
+       let div=document.createElement('div');
+       div.style.cssText='display:flex;gap:6px;align-items:center;padding:4px;background:#fffde7;border-bottom:1px solid #7a1f1f';
+       div.innerHTML='<label style="font-weight:900;font-size:12px">📋 പഴയ മത്സരങ്ങൾ:</label><select id="compSelect" onchange="selectCompetition(this.value)" style="flex:1;padding:6px;border:2px solid #7a1f1f;font-weight:900"></select>';
+       historyBar.insertBefore(div, historyBar.firstChild);
+       sel=document.getElementById('compSelect');
+     }
+   }
+   if(!sel) return;
+   sel.innerHTML='';
+   if(!competitions || !competitions.length){
+     let opt=document.createElement('option');
+     opt.textContent='മത്സരങ്ങളില്ല';
+     sel.appendChild(opt);
+     return;
+   }
+   competitions.forEach(c=>{
+     let opt=document.createElement('option');
+     opt.value=c.id;
+     let label=(c.malsaram||'പോത്ത്പൂട്ട്') + ' - ' + (c.sthalam||'വളാഞ്ചേരി') + ' (' + (c.date||'2026-10-18') + ')';
+     opt.textContent=label;
+     if(c.id==currentId) opt.selected=true;
+     sel.appendChild(opt);
+   });
+   console.log('✅ Rendered', competitions.length, 'competitions for public');
+ }catch(e){ console.log('renderCompSelect error', e); }
+}
+function _unused_orig_renderCompSelect(){
+
  let sel=document.getElementById('compSelect'); if(!sel) return; sel.innerHTML="";
  competitions.slice().sort((a,b)=>b.ts-a.ts).forEach(c=>{
   let opt=document.createElement('option'); opt.value=c.id;
@@ -1316,4 +1367,35 @@ loadCompetitions();
 }
 </style>
 
+
+function selectCompetition(id){
+  try{
+    console.log('Selecting competition', id);
+    let idNum=parseInt(id);
+    currentId=idNum;
+    let cur=competitions.find(c=>c.id==idNum);
+    if(!cur){
+      alert('മത്സരം കണ്ടില്ല!');
+      return;
+    }
+    data=cur.data;
+    // Save currentId to localStorage
+    try{ localStorage.setItem('pothpoott_currentId_v8', currentId); }catch(e){}
+    // Load malsaram, sthalam, date - FIXED 100%
+    let mi=document.getElementById('malsaramInput');
+    let si=document.getElementById('sthalamInput');
+    let di=document.getElementById('dateInput');
+    if(mi) mi.value=cur.malsaram||'പോത്ത്പൂട്ട്';
+    if(si) si.value=cur.sthalam||'വളാഞ്ചേരി';
+    if(di) di.value=cur.date||'2026-10-18';
+    render();
+    renderCompSelect();
+    // Scroll to top
+    try{ window.scrollTo(0,0); }catch(e){}
+    console.log('✅ Selected', cur.malsaram, cur.sthalam, cur.date);
+  }catch(e){
+    console.log('selectCompetition error', e);
+    alert('Error: ' + e.message);
+  }
+}
 </body></html>
