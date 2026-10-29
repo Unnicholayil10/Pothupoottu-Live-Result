@@ -1292,7 +1292,7 @@ loadCompetitions();
 
 
 <script>
-// === FINAL FIX: Admin Delete Works + 44 Never Disappears + Both Places Same Name ===
+// === FINAL: All can be deleted including 18-10-2026, Admin Delete Works ===
 
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
@@ -1307,12 +1307,12 @@ function isAdminUnlocked(){
   }catch(e){ return false; }
 }
 
-function ensure44(){
+function ensure44Optional(){
   try{
     if(!window.competitions) competitions = [];
-    let has44 = competitions.some(c=>c.id==1760000000000);
-    if(!has44){
-      competitions.unshift({
+    // Do NOT auto-add 44 if deleted - only ensure if list empty
+    if(competitions.length==0){
+      competitions.push({
         id: 1760000000000,
         malsaram: 'പോത്ത്പൂട്ട്',
         sthalam: 'വളാഞ്ചേരി',
@@ -1321,12 +1321,6 @@ function ensure44(){
         ts: 1760000000000
       });
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-    } else {
-      let c44 = competitions.find(c=>c.id==1760000000000);
-      if(c44 && (!c44.data || c44.data.every(r=>!r.name || r.name.trim()==''))){
-        c44.data = deepClone(window.ORIGINAL_44_DATA);
-        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-      }
     }
   }catch(e){}
 }
@@ -1335,7 +1329,7 @@ function syncBothPlaces(){
   try{
     let cur = competitions.find(c=>c.id==currentId);
     if(!cur){
-      cur = competitions.find(c=>c.id==1760000000000) || competitions[0];
+      cur = competitions[0];
       if(cur){
         currentId = cur.id;
         data = deepClone(cur.data);
@@ -1375,68 +1369,73 @@ function updateButtons(){
     let admin = isAdminUnlocked();
     let buttons = document.querySelectorAll('button');
     for(let btn of buttons){
-      let txt = (btn.textContent||'').toLowerCase();
       if(admin){
-        // Admin - enable ALL buttons including Delete
         btn.style.pointerEvents = 'auto';
         btn.style.opacity = '1';
         btn.disabled = false;
         btn.removeAttribute('disabled');
       } else {
-        // Public - disable only Delete and Clear (but keep dropdown enabled)
+        let txt = (btn.textContent||'').toLowerCase();
         if(txt.includes('delete') || (txt.includes('clear') && !txt.includes('data clear'))){
           btn.style.pointerEvents = 'none';
           btn.style.opacity = '0.4';
-        } else {
-          btn.style.pointerEvents = 'auto';
-          btn.style.opacity = '1';
         }
-      }
-    }
-    let inputs = document.querySelectorAll('input');
-    for(let inp of inputs){
-      if(admin){
-        inp.removeAttribute('readonly');
-        inp.style.background = '';
-        inp.style.pointerEvents = 'auto';
-        inp.disabled = false;
       }
     }
   }catch(e){}
 }
 
-// Fix Delete to work for admin and protect 44 data
-let origDelete = window.deleteCompetition || window.deleteCurrent;
+// Delete - ALL can be deleted including 18-10-2026
 window.deleteCompetition = function(){
   try{
     if(!isAdminUnlocked()){
       alert("അഡ്മിൻ മാത്രം Delete ചെയ്യാം!");
       return;
     }
-    if(currentId==1760000000000){
-      alert("⚠️ 18-10-2026 വളാഞ്ചേരി 44 Original Data Delete ചെയ്യാൻ പറ്റില്ല! അത് എപ്പോഴും Safe ആയി ഇരിക്കണം!");
+    let cur = competitions.find(c=>c.id==currentId);
+    if(!cur){
+      alert("Delete ചെയ്യാൻ മത്സരം ഇല്ല!");
       return;
     }
-    if(!confirm("ഈ മത്സരം Delete ചെയ്യണോ?")) return;
+    
+    let msg = "⚠️ " + cur.malsaram + " (" + cur.sthalam + ") - " + cur.date + " ഈ മത്സരം Delete ചെയ്യണോ?";
+    if(cur.id==1760000000000){
+      msg = "⚠️ 18-10-2026 വളാഞ്ചേരി 44 Original Data ആണ്! Delete ചെയ്യണോ?\n\nഇത് Delete ചെയ്താൽ പിന്നെ വേണമെങ്കിൽ പുതിയ മത്സരം ഉണ്ടാക്കി അതേ Data വീണ്ടും Add ചെയ്യാം";
+    }
+    if(!confirm(msg)) return;
     
     let idx = competitions.findIndex(c=>c.id==currentId);
     if(idx>=0){
       competitions.splice(idx,1);
-      ensure44();
+      
+      if(competitions.length==0){
+        // Create blank if all deleted
+        let blankData = Array(44).fill(0).map(()=>({name:'',r1:'',r2:'',r3:'',fd1:'',fd2:'',fd3:''}));
+        let newId = Date.now();
+        competitions.push({id: newId, malsaram: 'പോത്ത്പൂട്ട്', sthalam: '', date: new Date().toISOString().split('T')[0], data: blankData, ts: newId});
+      }
+      
       currentId = competitions[0].id;
       data = deepClone(competitions[0].data);
+      
       try{
         localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
         localStorage.setItem('pothpoott_currentId', currentId.toString());
         localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
       }catch(e){}
+      
       if(typeof renderDropdown === 'function') renderDropdown();
       syncBothPlaces();
       if(typeof render === 'function') render();
       updateButtons();
-      alert("✅ Deleted! 44 Data Safe ആണ്");
+      
+      if(cur.id==1760000000000){
+        alert("✅ 18-10-2026 വളാഞ്ചേരി Deleted! ഇനി Dropdown-ൽ നിന്ന് പോയി");
+      } else {
+        alert("✅ Deleted!");
+      }
     }
-  }catch(e){ console.error(e); }
+  }catch(e){ console.error(e); alert("Delete Error: "+e.message); }
 };
 window.deleteCurrent = window.deleteCompetition;
 
@@ -1455,7 +1454,6 @@ window.switchCompetition = function(id){
       localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
       localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
     }catch(e){}
-    ensure44();
     syncBothPlaces();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
@@ -1466,13 +1464,12 @@ window.switchCompetition = function(id){
 let origRender = window.render;
 window.render = function(){
   try{ origRender(); }catch(e){}
-  ensure44();
   syncBothPlaces();
   updateButtons();
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026FinalV3';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026FinalV4';
 const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
 const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
 const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
@@ -1487,9 +1484,7 @@ async function pushLive(){
     let dataPayload = JSON.stringify({currentId: currentId, data: data, ts: Date.now()});
     fetch(KVDB_LIVE, {method: 'POST', body: livePayload}).catch(()=>{});
     fetch(KVDB_DATA, {method: 'POST', body: dataPayload}).catch(()=>{});
-    if(competitions.length<=15){
-      fetch(KVDB_COMPS, {method: 'POST', body: JSON.stringify(competitions)}).catch(()=>{});
-    }
+    fetch(KVDB_COMPS, {method: 'POST', body: JSON.stringify(competitions)}).catch(()=>{});
   }catch(e){}
 }
 
@@ -1511,7 +1506,6 @@ async function pullLive(){
                   let newComps = JSON.parse(compTxt);
                   if(newComps && newComps.length>0){
                     competitions = newComps;
-                    ensure44();
                     try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
                   }
                 }
@@ -1557,7 +1551,7 @@ async function pullLive(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=>{
-    ensure44();
+    if(competitions.length==0) ensure44Optional();
     syncBothPlaces();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
@@ -1567,7 +1561,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       else pullLive();
     }, 2500);
     setInterval(updateButtons, 1000);
-    console.log('FINAL: Admin Delete Works, 44 Safe, Both Places Same Name');
+    console.log('FINAL: All deletable including 18-10-2026, Admin Delete Works');
   }, 500);
 });
 </script>
