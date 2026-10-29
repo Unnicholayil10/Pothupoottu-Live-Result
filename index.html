@@ -1447,69 +1447,129 @@ setTimeout(()=>{
 
 
 <script>
-function syncInputsWithCurrent(){
+// === FINAL FIX: Admin selects sheet, Public ALWAYS follows same sheet instantly ===
+window.isAdminUnlocked = false;
+let firebaseDB = null;
+let firebaseRef = null;
+
+function initFirebaseFinal(){
   try{
-    let cur = competitions.find(c=>c.id==currentId);
-    if(!cur) return;
-    // Find malsaram, sthalam, date inputs
-    let inputs = document.querySelectorAll('input[type="text"], input[type="date"]');
-    for(let inp of inputs){
-      // Malsaram input - first text input after Data Clear
-      if(inp.id=='malsaramInput' || (inp.placeholder && inp.placeholder.includes('പോത്ത്പൂട്ട്'))){
-        if(inp.value != cur.malsaram) inp.value = cur.malsaram;
+    // Use original demo config that works
+    const firebaseConfig = {
+      apiKey: "AIzaSyDemo-Kaalapoottu-Live",
+      authDomain: "kaalapoottu-live.firebaseapp.com",
+      databaseURL: "https://kaalapoottu-live-default-rtdb.firebaseio.com",
+      projectId: "kaalapoottu-live",
+      storageBucket: "kaalapoottu-live.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+    if(window.firebase){
+      if(!firebase.apps || firebase.apps.length==0){
+        firebase.initializeApp(firebaseConfig);
       }
-      if(inp.id=='sthalamInput' || (inp.placeholder && (inp.placeholder.includes('വളാഞ്ചേരി') || inp.placeholder.includes('മാട്ടറ') || inp.placeholder.includes('സ്ഥലം')))){
-        if(inp.value != cur.sthalam) inp.value = cur.sthalam;
-      }
-      if(inp.type=='date' || inp.placeholder && inp.placeholder.includes('2026')){
-        // Convert date format
-        let dateStr = cur.date;
-        if(dateStr && dateStr.includes('/')){
-          let parts = dateStr.split('/');
-          if(parts.length==3) dateStr = parts[2]+'-'+parts[0].padStart(2,'0')+'-'+parts[1].padStart(2,'0');
-        }
-        // For display input that shows MM/DD/YYYY, keep as is but ensure same date
-        if(inp.type=='date'){
-          if(inp.value != dateStr) inp.value = dateStr;
-        } else {
-          // Text date input like 10/18/2026
-          let displayDate = cur.date;
-          if(displayDate.includes('-')){
-            let p = displayDate.split('-');
-            displayDate = p[1]+'/'+p[2]+'/'+p[0];
-          }
-          if(inp.value != displayDate && inp.value != cur.date){
-            // Only update if it's date field (check by position - 3rd input)
-            if(inputs.length>=3 && inp == inputs[2]){
-              inp.value = displayDate;
+      firebaseDB = firebase.database();
+      firebaseRef = firebaseDB.ref('pothpoottu_live_final_sync');
+      
+      // PUBLIC: Always follow admin's selected sheet
+      firebaseRef.on('value', (snap)=>{
+        try{
+          let fb = snap.val();
+          if(!fb) return;
+          if(window.isAdminUnlocked) return; // Admin doesn't follow
+          
+          if(fb.currentId && fb.currentId != currentId){
+            console.log('ADMIN switched to', fb.currentId, 'PUBLIC following SAME sheet -', fb.currentMeta);
+            // Update competitions
+            if(fb.competitions && fb.competitions.length>0){
+              competitions = fb.competitions;
+              try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+            }
+            let newComp = competitions.find(c=>c.id==fb.currentId);
+            if(newComp){
+              currentId = fb.currentId;
+              data = JSON.parse(JSON.stringify(newComp.data));
+              try{
+                localStorage.setItem('pothpoott_currentId', currentId.toString());
+                localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+                localStorage.removeItem('public_manual_time'); // Clear manual block
+              }catch(e){}
+              if(typeof renderDropdown === 'function') renderDropdown();
+              if(typeof render === 'function') render();
+              // Update inputs to show same name as admin
+              setTimeout(()=>{
+                let inputs = document.querySelectorAll('input[type="text"], input[type="date"]');
+                for(let inp of inputs){
+                  if(inp.id=='malsaramInput' && fb.currentMeta) inp.value = fb.currentMeta.malsaram||'';
+                  if(inp.id=='sthalamInput' && fb.currentMeta) inp.value = fb.currentMeta.sthalam||'';
+                }
+              }, 200);
+            }
+          } else if(fb.currentData && fb.currentId==currentId){
+            // Same sheet, live data update
+            if(JSON.stringify(fb.currentData) != JSON.stringify(data)){
+              data = JSON.parse(JSON.stringify(fb.currentData));
+              let cur = competitions.find(c=>c.id==currentId);
+              if(cur) cur.data = JSON.parse(JSON.stringify(data));
+              if(typeof render === 'function') render();
             }
           }
-        }
-      }
+        }catch(e){ console.error('public follow error', e); }
+      });
     }
-    
-    // Also ensure dropdown and inputs same - update currentCompMeta
-    currentCompMeta = {malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date};
-  }catch(e){ console.error('syncInputs error', e); }
+  }catch(e){ console.error('firebase init error', e); }
 }
 
-// Override switchCompetition to sync inputs
-let origSwitch2 = window.switchCompetition;
-window.switchCompetition = function(id){
-  origSwitch2(id);
-  setTimeout(syncInputsWithCurrent, 100);
-  setTimeout(()=>{ if(window.isAdminUnlocked) window.pushLive && window.pushLive(); }, 500);
-};
+function pushAdminLiveFinal(){
+  try{
+    if(!window.isAdminUnlocked) return;
+    if(!firebaseRef) return;
+    let cur = competitions.find(c=>c.id==currentId);
+    if(!cur) return;
+    // Save current data to cur
+    cur.data = JSON.parse(JSON.stringify(data));
+    firebaseRef.set({
+      currentId: currentId,
+      currentMeta: {malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date},
+      currentData: data,
+      competitions: competitions,
+      ts: Date.now()
+    });
+    console.log('ADMIN LIVE pushed:', cur.malsaram, cur.sthalam, cur.date);
+  }catch(e){ console.error('push error', e); }
+}
 
-// Also sync on render
-let origRender2 = window.render;
-window.render = function(){
-  origRender2();
-  syncInputsWithCurrent();
-};
-
-setTimeout(syncInputsWithCurrent, 1500);
-setInterval(syncInputsWithCurrent, 3000);
+// Hook admin actions
+setTimeout(()=>{
+  initFirebaseFinal();
+  
+  // Detect admin unlock
+  setInterval(()=>{
+    let isUnlocked = document.body.innerHTML.includes('Admin Editing') || document.body.innerHTML.includes('UNLOCKED - Unni');
+    window.isAdminUnlocked = isUnlocked;
+  }, 1000);
+  
+  // Override switch to push live
+  let origSwitch = window.switchCompetition;
+  window.switchCompetition = function(id){
+    origSwitch(id);
+    if(window.isAdminUnlocked){
+      setTimeout(pushAdminLiveFinal, 300);
+    }
+  };
+  
+  // Push on render (typing)
+  let origRender = window.render;
+  let debounce = null;
+  window.render = function(){
+    origRender();
+    if(window.isAdminUnlocked){
+      if(debounce) clearTimeout(debounce);
+      debounce = setTimeout(pushAdminLiveFinal, 800);
+    }
+  };
+  
+}, 1500);
 </script>
 
 </body></html>
