@@ -1292,185 +1292,228 @@ loadCompetitions();
 
 
 <script>
-// === FINAL: 44 Data NEVER disappears + Two places same name ===
+// === FINAL FIX: Admin can unlock with unni0264, Public locked, 44 never disappears, both places same name ===
 
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
-function ensure44NeverDisappears(){
+function isAdminUnlocked(){
+  try{
+    if(window.isAdmin && window.isAdmin===true) return true;
+    let badge = document.getElementById('adminBadge');
+    if(!badge) badge = document.querySelector('.badge');
+    if(badge && badge.textContent && badge.textContent.includes('UNLOCKED')) return true;
+    let liveStatus = document.getElementById('liveStatus');
+    if(liveStatus && liveStatus.textContent && liveStatus.textContent.includes('You are Admin')) return true;
+    return false;
+  }catch(e){ return false; }
+}
+
+function ensure44(){
   try{
     if(!window.competitions) competitions = [];
-    
-    // ALWAYS ensure 44 exists by ID, not by date
     let has44 = competitions.some(c=>c.id==1760000000000);
     if(!has44){
-      console.log('44 Data missing - Recovering!');
-      let comp44 = {
+      competitions.unshift({
         id: 1760000000000,
         malsaram: 'പോത്ത്പൂട്ട്',
         sthalam: 'വളാഞ്ചേരി',
         date: '2026-10-18',
         data: deepClone(window.ORIGINAL_44_DATA),
         ts: 1760000000000
-      };
-      competitions.unshift(comp44);
+      });
+      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
     } else {
-      // Ensure its data is not blank
       let c44 = competitions.find(c=>c.id==1760000000000);
       if(c44 && (!c44.data || c44.data.every(r=>!r.name || r.name.trim()==''))){
-        console.log('44 Data blank - Restoring!');
         c44.data = deepClone(window.ORIGINAL_44_DATA);
+        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
       }
     }
-    
-    // Also ensure current data if current is 44 and blank
-    if(currentId==1760000000000){
-      let c44 = competitions.find(c=>c.id==1760000000000);
-      if(c44 && c44.data && c44.data.some(r=>r.name)){
-        if(!data || data.every(r=>!r.name)){
-          data = deepClone(c44.data);
-          console.log('Current 44 Data restored');
-        }
-      }
-    }
-    
-    try{
-      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
-    }catch(e){}
-  }catch(e){ console.error('ensure44 error', e); }
+  }catch(e){}
 }
 
-function syncBothPlacesSameName(){
+function syncBothPlaces(){
   try{
     let cur = competitions.find(c=>c.id==currentId);
     if(!cur){
       cur = competitions.find(c=>c.id==1760000000000) || competitions[0];
-      currentId = cur.id;
-      data = deepClone(cur.data);
+      if(cur){
+        currentId = cur.id;
+        data = deepClone(cur.data);
+      }
     }
+    if(!cur) return;
     
-    // Sync dropdown
     let sel = document.getElementById('compSelect');
-    if(sel){
-      if(sel.value != currentId) sel.value = currentId;
-    }
+    if(sel && sel.value != currentId) sel.value = currentId;
     
-    // Sync inputs - BOTH places same name
-    let allInputs = document.querySelectorAll('input');
-    for(let i=0;i<allInputs.length;i++){
-      let inp = allInputs[i];
-      // Malsaram - first input
-      if(i==0 || inp.id=='malsaramInput' || (inp.placeholder && inp.placeholder.includes('പോത്ത്പൂട്ട്'))){
+    let inputs = document.querySelectorAll('input');
+    for(let i=0;i<inputs.length;i++){
+      let inp = inputs[i];
+      if(i==0 || inp.id=='malsaramInput'){
         if(inp.value != cur.malsaram) inp.value = cur.malsaram;
       }
-      // Sthalam - second input
-      if(i==1 || inp.id=='sthalamInput' || (inp.placeholder && (inp.placeholder.includes('വളാഞ്ചേരി') || inp.placeholder.includes('മാട്ടറ')))){
+      if(i==1 || inp.id=='sthalamInput'){
         if(inp.value != cur.sthalam) inp.value = cur.sthalam;
       }
-      // Date - third input
       if(inp.type=='date'){
         if(inp.value != cur.date) inp.value = cur.date;
       }
-      if(inp.value && inp.value.match(/\d+\/\d+\/\d+/)){
+      if(i==2 && inp.value && inp.value.includes('/')){
         let displayDate = cur.date;
         if(displayDate.includes('-')){
           let p = displayDate.split('-');
           displayDate = p[1]+'/'+p[2]+'/'+p[0];
         }
-        if(i==2){
-          if(inp.value != displayDate && inp.value != cur.date) inp.value = displayDate;
-        }
+        if(inp.value != displayDate) inp.value = displayDate;
       }
     }
-  }catch(e){ console.error(e); }
+  }catch(e){}
 }
 
-// Override switch to keep 44 safe
+function lockPublicOnly(){
+  try{
+    let admin = isAdminUnlocked();
+    if(admin) return;
+    let buttons = document.querySelectorAll('button');
+    for(let btn of buttons){
+      let txt = (btn.textContent||'').toLowerCase();
+      if(txt.includes('delete') || (txt.includes('clear') && !txt.includes('data clear'))){
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.4';
+      }
+    }
+  }catch(e){}
+}
+
 let origSwitch = window.switchCompetition;
 window.switchCompetition = function(id){
   try{
     id = parseInt(id);
     let old = competitions.find(c=>c.id==currentId);
     if(old) old.data = deepClone(data);
-    
     let cur = competitions.find(c=>c.id==id);
     if(!cur) return;
-    
     currentId = id;
     data = deepClone(cur.data);
-    
     try{
       localStorage.setItem('pothpoott_currentId', currentId.toString());
       localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
       localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
     }catch(e){}
-    
-    ensure44NeverDisappears();
-    syncBothPlacesSameName();
+    ensure44();
+    syncBothPlaces();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
-  }catch(e){ console.error(e); }
+    lockPublicOnly();
+  }catch(e){}
 };
 
-// Override render
 let origRender = window.render;
 window.render = function(){
   try{ origRender(); }catch(e){}
-  ensure44NeverDisappears();
-  syncBothPlacesSameName();
+  ensure44();
+  syncBothPlaces();
+  lockPublicOnly();
 };
 
-// On load
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026FinalV2';
+const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
+const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
+const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
+
+async function pushLive(){
+  try{
+    if(!isAdminUnlocked()) return;
+    let cur = competitions.find(c=>c.id==currentId);
+    if(!cur) return;
+    cur.data = deepClone(data);
+    let livePayload = JSON.stringify({currentId: currentId, malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date, ts: Date.now()});
+    let dataPayload = JSON.stringify({currentId: currentId, data: data, ts: Date.now()});
+    fetch(KVDB_LIVE, {method: 'POST', body: livePayload}).catch(()=>{});
+    fetch(KVDB_DATA, {method: 'POST', body: dataPayload}).catch(()=>{});
+    if(competitions.length<=10){
+      fetch(KVDB_COMPS, {method: 'POST', body: JSON.stringify(competitions)}).catch(()=>{});
+    }
+  }catch(e){}
+}
+
+async function pullLive(){
+  try{
+    if(isAdminUnlocked()) return;
+    try{
+      let liveRes = await fetch(KVDB_LIVE);
+      if(liveRes.ok){
+        let txt = await liveRes.text();
+        if(txt){
+          let live = JSON.parse(txt);
+          if(live && live.currentId && live.currentId != currentId){
+            try{
+              let compRes = await fetch(KVDB_COMPS);
+              if(compRes.ok){
+                let compTxt = await compRes.text();
+                if(compTxt){
+                  let newComps = JSON.parse(compTxt);
+                  if(newComps && newComps.length>0){
+                    competitions = newComps;
+                    ensure44();
+                    try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+                  }
+                }
+              }
+            }catch(e){}
+            let newComp = competitions.find(c=>c.id==live.currentId);
+            if(newComp){
+              currentId = live.currentId;
+              data = deepClone(newComp.data);
+              try{
+                localStorage.setItem('pothpoott_currentId', currentId.toString());
+                localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+              }catch(e){}
+              if(typeof renderDropdown === 'function') renderDropdown();
+              syncBothPlaces();
+              if(typeof render === 'function') render();
+              lockPublicOnly();
+              return;
+            }
+          }
+        }
+      }
+    }catch(e){}
+    try{
+      let dataRes = await fetch(KVDB_DATA);
+      if(dataRes.ok){
+        let dataTxt = await dataRes.text();
+        if(dataTxt){
+          let d = JSON.parse(dataTxt);
+          if(d && d.currentId==currentId && d.data){
+            if(JSON.stringify(d.data) != JSON.stringify(data)){
+              data = deepClone(d.data);
+              let cur = competitions.find(c=>c.id==currentId);
+              if(cur) cur.data = deepClone(data);
+              if(typeof render === 'function') render();
+            }
+          }
+        }
+      }
+    }catch(e){}
+  }catch(e){}
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=>{
-    ensure44NeverDisappears();
-    syncBothPlacesSameName();
+    ensure44();
+    syncBothPlaces();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
-    console.log('FINAL: 44 Data NEVER disappears, Both places same name');
-  }, 300);
-  
-  setInterval(()=>{
-    ensure44NeverDisappears();
-    syncBothPlacesSameName();
-  }, 2000);
+    lockPublicOnly();
+    setInterval(()=>{
+      if(isAdminUnlocked()) pushLive();
+      else pullLive();
+    }, 2500);
+    setInterval(lockPublicOnly, 2000);
+  }, 500);
 });
-
-// Create new competition - ensure 44 stays
-let origCreate = window.createNewCompetition;
-window.createNewCompetition = function(){
-  try{
-    let old = competitions.find(c=>c.id==currentId);
-    if(old) old.data = deepClone(data);
-    
-    let malsaram = prompt('പുതിയ മത്സരത്തിന്റെ പേര്:') || 'പോത്ത്പൂട്ട്';
-    if(!malsaram) return;
-    let sthalam = prompt('സ്ഥലം:') || '';
-    let dateInput = prompt('തീയതി (YYYY-MM-DD):') || new Date().toISOString().split('T')[0];
-    
-    let blankData = Array(44).fill(0).map(()=>({name:'',r1:'',r2:'',r3:'',fd1:'',fd2:'',fd3:''}));
-    let newId = Date.now();
-    let newComp = {id: newId, malsaram: malsaram, sthalam: sthalam, date: dateInput, data: blankData, ts: newId};
-    competitions.push(newComp);
-    
-    ensure44NeverDisappears();
-    
-    currentId = newId;
-    data = deepClone(blankData);
-    
-    try{
-      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-      localStorage.setItem('pothpoott_currentId', currentId.toString());
-      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
-    }catch(e){}
-    
-    syncBothPlacesSameName();
-    if(typeof renderDropdown === 'function') renderDropdown();
-    if(typeof render === 'function') render();
-    
-    alert('✅ പുതിയ ഷീറ്റ് Blank ആയി ഉണ്ടാക്കി! പഴയ 44 Data dropdown-ൽ safe ആണ്, ഒരിക്കലും പോകില്ല!');
-  }catch(e){ console.error(e); }
-};
 </script>
 
 </body></html>
