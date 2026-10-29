@@ -460,7 +460,7 @@ function exportForGitHub(){
 </div>
 
 
-<select id="compSelect" onchange="switchCompetition(this.value)"></select>
+<select id="compSelect" onchange="localStorage.setItem('public_manual_time', Date.now().toString()); switchCompetition(this.value)"></select>
 <div class="history-btns">
 <button class="btn-new" onclick="createNewCompetition()">➕ പുതിയ മത്സരം</button>
 <button class="btn-new" style="background:#ff9800;color:#000" onclick="renameCompetition()">✏️ പേര് മാറ്റുക</button>
@@ -1289,5 +1289,116 @@ loadCompetitions();
   #top10R1 th:nth-child(3), #top10R1 td:nth-child(3){width:115mm !important;min-width:115mm !important;max-width:115mm !important}
 }
 </style>
+
+
+<script>
+// === SIMPLE LIVE SYNC: Admin current selection = Public view ===
+function pushLiveCompetition(){
+  try{
+    if(!window.firebase || !firebase.database) return;
+    // Only admin pushes
+    let isAdmin = document.body.innerHTML.includes('Admin Editing') || window.isAdminUnlocked;
+    if(!isAdmin && !document.querySelector('#adminBadge')) {
+      // Check if unlocked
+      let lockedEl = document.querySelector('.locked-badge');
+      if(lockedEl && lockedEl.textContent.includes('LOCKED')) return;
+    }
+    let db = firebase.database();
+    let cur = competitions.find(c=>c.id==currentId);
+    if(!cur) return;
+    db.ref('pothpoottu_live_v3').set({
+      currentId: currentId,
+      currentMeta: {malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date},
+      currentData: cur.data,
+      competitions: competitions,
+      ts: Date.now()
+    });
+  }catch(e){}
+}
+
+function pullLiveCompetition(){
+  try{
+    if(window.isAdminUnlocked) return; // Admin doesn't pull
+    if(!window.firebase || !firebase.database) return;
+    let db = firebase.database();
+    db.ref('pothpoottu_live_v3').on('value', (snap)=>{
+      try{
+        let fb = snap.val();
+        if(!fb || !fb.currentId) return;
+        // If admin changed competition, public follows
+        if(fb.currentId != currentId){
+          // Check if public manually selected recently - if yes, don't auto switch for 2 min
+          let manualTime = parseInt(localStorage.getItem('public_manual_time')||'0');
+          if(Date.now() - manualTime < 120000) return; // 2 min grace
+          console.log('Admin switched to', fb.currentId, 'public following');
+          let newCur = fb.competitions ? fb.competitions.find(c=>c.id==fb.currentId) : null;
+          if(newCur){
+            competitions = fb.competitions;
+            currentId = fb.currentId;
+            data = JSON.parse(JSON.stringify(newCur.data));
+            localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+            localStorage.setItem('pothpoott_currentId', currentId.toString());
+            localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+            if(typeof renderDropdown === 'function') renderDropdown();
+            if(typeof render === 'function') render();
+          }
+        } else if(fb.currentData && currentId == fb.currentId){
+          // Same competition, live update data
+          if(JSON.stringify(fb.currentData) != JSON.stringify(data)){
+            data = JSON.parse(JSON.stringify(fb.currentData));
+            let cur = competitions.find(c=>c.id==currentId);
+            if(cur) cur.data = JSON.parse(JSON.stringify(data));
+            if(typeof render === 'function') render();
+          }
+        }
+      }catch(e){ console.error(e); }
+    });
+  }catch(e){}
+}
+
+// Hook into existing switch and save
+let originalSwitch = window.switchCompetition;
+window.switchCompetition = function(id){
+  originalSwitch(id);
+  localStorage.setItem('public_manual_time', Date.now().toString());
+  if(window.isAdminUnlocked || document.body.innerHTML.includes('Admin Editing')){
+    pushLiveCompetition();
+  }
+};
+
+// Auto push when admin types
+let originalRender = window.render;
+if(originalRender){
+  let debounce = null;
+  window.render = function(){
+    originalRender();
+    if(window.isAdminUnlocked){
+      if(debounce) clearTimeout(debounce);
+      debounce = setTimeout(pushLiveCompetition, 1500);
+    }
+  };
+}
+
+setTimeout(()=>{
+  pullLiveCompetition();
+  // Initial push if admin
+  if(document.body.innerHTML.includes('Admin Editing')){
+    window.isAdminUnlocked = true;
+    pushLiveCompetition();
+  }
+}, 2000);
+
+// Fix 44 data name issue - ensure 18-10-2026 is always Vlancheri
+setTimeout(()=>{
+  try{
+    let comp = competitions.find(c=>c.date=='2026-10-18' && c.malsaram=='പോത്ത്പൂട്ട്');
+    if(comp && comp.sthalam!='വളാഞ്ചേരി'){
+      comp.sthalam = 'വളാഞ്ചേരി';
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+      if(typeof renderDropdown === 'function') renderDropdown();
+    }
+  }catch(e){}
+}, 1000);
+</script>
 
 </body></html>
