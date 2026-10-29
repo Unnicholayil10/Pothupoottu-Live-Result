@@ -1292,300 +1292,185 @@ loadCompetitions();
 
 
 <script>
-// === FINAL 100% FIX: Admin=Public Same Sheet + Live Result + 44 Never Disappears + Buttons Locked for Public ===
+// === FINAL: 44 Data NEVER disappears + Two places same name ===
 
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 
-// 1. Ensure 44 never disappears
-function ensure44(){
+function ensure44NeverDisappears(){
   try{
     if(!window.competitions) competitions = [];
+    
+    // ALWAYS ensure 44 exists by ID, not by date
     let has44 = competitions.some(c=>c.id==1760000000000);
     if(!has44){
-      competitions.unshift({
+      console.log('44 Data missing - Recovering!');
+      let comp44 = {
         id: 1760000000000,
         malsaram: 'പോത്ത്പൂട്ട്',
         sthalam: 'വളാഞ്ചേരി',
         date: '2026-10-18',
         data: deepClone(window.ORIGINAL_44_DATA),
         ts: 1760000000000
-      });
+      };
+      competitions.unshift(comp44);
     } else {
+      // Ensure its data is not blank
       let c44 = competitions.find(c=>c.id==1760000000000);
-      if(!c44.data || c44.data.every(r=>!r.name || r.name.trim()=='')){
+      if(c44 && (!c44.data || c44.data.every(r=>!r.name || r.name.trim()==''))){
+        console.log('44 Data blank - Restoring!');
         c44.data = deepClone(window.ORIGINAL_44_DATA);
       }
     }
-    try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-  }catch(e){}
+    
+    // Also ensure current data if current is 44 and blank
+    if(currentId==1760000000000){
+      let c44 = competitions.find(c=>c.id==1760000000000);
+      if(c44 && c44.data && c44.data.some(r=>r.name)){
+        if(!data || data.every(r=>!r.name)){
+          data = deepClone(c44.data);
+          console.log('Current 44 Data restored');
+        }
+      }
+    }
+    
+    try{
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+    }catch(e){}
+  }catch(e){ console.error('ensure44 error', e); }
 }
 
-// 2. Sync both places same name
-function syncBothPlaces(){
+function syncBothPlacesSameName(){
   try{
     let cur = competitions.find(c=>c.id==currentId);
     if(!cur){
       cur = competitions.find(c=>c.id==1760000000000) || competitions[0];
-      if(cur){
-        currentId = cur.id;
-        data = deepClone(cur.data);
-      }
+      currentId = cur.id;
+      data = deepClone(cur.data);
     }
-    if(!cur) return;
     
+    // Sync dropdown
     let sel = document.getElementById('compSelect');
-    if(sel && sel.value != currentId) sel.value = currentId;
+    if(sel){
+      if(sel.value != currentId) sel.value = currentId;
+    }
     
-    let inputs = document.querySelectorAll('input');
-    for(let i=0;i<inputs.length;i++){
-      let inp = inputs[i];
-      if(i==0 || inp.id=='malsaramInput'){
+    // Sync inputs - BOTH places same name
+    let allInputs = document.querySelectorAll('input');
+    for(let i=0;i<allInputs.length;i++){
+      let inp = allInputs[i];
+      // Malsaram - first input
+      if(i==0 || inp.id=='malsaramInput' || (inp.placeholder && inp.placeholder.includes('പോത്ത്പൂട്ട്'))){
         if(inp.value != cur.malsaram) inp.value = cur.malsaram;
       }
-      if(i==1 || inp.id=='sthalamInput'){
+      // Sthalam - second input
+      if(i==1 || inp.id=='sthalamInput' || (inp.placeholder && (inp.placeholder.includes('വളാഞ്ചേരി') || inp.placeholder.includes('മാട്ടറ')))){
         if(inp.value != cur.sthalam) inp.value = cur.sthalam;
       }
+      // Date - third input
       if(inp.type=='date'){
         if(inp.value != cur.date) inp.value = cur.date;
       }
-      if(i==2 && inp.value && inp.value.match(/\d+\/\d+\/\d+/)){
+      if(inp.value && inp.value.match(/\d+\/\d+\/\d+/)){
         let displayDate = cur.date;
         if(displayDate.includes('-')){
           let p = displayDate.split('-');
           displayDate = p[1]+'/'+p[2]+'/'+p[0];
         }
-        if(inp.value != displayDate) inp.value = displayDate;
+        if(i==2){
+          if(inp.value != displayDate && inp.value != cur.date) inp.value = displayDate;
+        }
       }
     }
-  }catch(e){}
-}
-
-// 3. Lock public buttons - Public cannot Delete/Clear/Create
-function lockPublicButtons(){
-  try{
-    let isLocked = document.body.innerHTML.includes('Locked') || !window.isAdminUnlocked;
-    if(!isLocked) return;
-    
-    let buttons = document.querySelectorAll('button');
-    for(let btn of buttons){
-      let txt = btn.textContent || '';
-      if(txt.includes('Delete') || txt.includes('Clear') || txt.includes('Data Clear') || txt.includes('പുതിയ മത്സരം') || txt.includes('പേര് മാറ്റുക') || txt.includes('+ പേര്') || txt.includes('- പേര്')){
-        btn.style.pointerEvents = 'none';
-        btn.style.opacity = '0.4';
-        btn.style.background = '#999';
-      }
-    }
-    // Lock inputs
-    let inputs = document.querySelectorAll('input');
-    for(let inp of inputs){
-      if(inp.type=='text' || inp.type=='date'){
-        inp.setAttribute('readonly', 'true');
-        inp.style.background = '#e0e0e0';
-        inp.style.pointerEvents = 'none';
-      }
-    }
-    // Keep dropdown enabled for viewing old results
-    let sel = document.getElementById('compSelect');
-    if(sel){
-      sel.style.pointerEvents = 'auto';
-      sel.style.opacity = '1';
-      sel.disabled = false;
-    }
-  }catch(e){}
-}
-
-// 4. ONE-TIME LIVE SYNC via KVDB + Firebase
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026Final';
-const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
-const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
-const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
-
-async function pushLive(){
-  try{
-    if(!window.isAdminUnlocked) return;
-    let cur = competitions.find(c=>c.id==currentId);
-    if(!cur) return;
-    cur.data = deepClone(data);
-    
-    let livePayload = JSON.stringify({currentId: currentId, malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date, ts: Date.now()});
-    let dataPayload = JSON.stringify({currentId: currentId, data: data, ts: Date.now()});
-    let compsPayload = JSON.stringify(competitions);
-    
-    // Push to KVDB (fire and forget, no await for speed)
-    fetch(KVDB_LIVE, {method: 'POST', body: livePayload}).catch(()=>{});
-    fetch(KVDB_DATA, {method: 'POST', body: dataPayload}).catch(()=>{});
-    fetch(KVDB_COMPS, {method: 'POST', body: compsPayload}).catch(()=>{});
-    
-    // Also push to Firebase if available
-    try{
-      if(window.firebase && firebase.database){
-        let db = firebase.database();
-        db.ref('pothpoottu_live_final').set({
-          currentId: currentId,
-          currentMeta: {malsaram: cur.malsaram, sthalam: cur.sthalam, date: cur.date},
-          currentData: data,
-          competitions: competitions,
-          ts: Date.now()
-        });
-      }
-    }catch(e){}
-    
-    console.log('LIVE PUSH:', cur.malsaram, cur.sthalam);
   }catch(e){ console.error(e); }
 }
 
-async function pullLive(){
-  try{
-    if(window.isAdminUnlocked) return;
-    
-    // Pull live sheet ID
-    try{
-      let liveRes = await fetch(KVDB_LIVE);
-      if(liveRes.ok){
-        let txt = await liveRes.text();
-        if(txt){
-          let live = JSON.parse(txt);
-          if(live && live.currentId && live.currentId != currentId){
-            // Pull comps first
-            try{
-              let compRes = await fetch(KVDB_COMPS);
-              if(compRes.ok){
-                let compTxt = await compRes.text();
-                if(compTxt){
-                  let newComps = JSON.parse(compTxt);
-                  if(newComps && newComps.length>0){
-                    competitions = newComps;
-                    ensure44();
-                    try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-                  }
-                }
-              }
-            }catch(e){}
-            
-            let newComp = competitions.find(c=>c.id==live.currentId);
-            if(newComp){
-              console.log('ADMIN selected', live.malsaram, live.sthalam, '- PUBLIC following SAME');
-              currentId = live.currentId;
-              data = deepClone(newComp.data);
-              try{
-                localStorage.setItem('pothpoott_currentId', currentId.toString());
-                localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
-              }catch(e){}
-              if(typeof renderDropdown === 'function') renderDropdown();
-              syncBothPlaces();
-              if(typeof render === 'function') render();
-              lockPublicButtons();
-              return;
-            }
-          }
-        }
-      }
-    }catch(e){}
-    
-    // Pull live data for same sheet
-    try{
-      let dataRes = await fetch(KVDB_DATA);
-      if(dataRes.ok){
-        let dataTxt = await dataRes.text();
-        if(dataTxt){
-          let d = JSON.parse(dataTxt);
-          if(d && d.currentId==currentId && d.data){
-            if(JSON.stringify(d.data) != JSON.stringify(data)){
-              data = deepClone(d.data);
-              let cur = competitions.find(c=>c.id==currentId);
-              if(cur) cur.data = deepClone(data);
-              if(typeof render === 'function') render();
-              console.log('LIVE DATA update');
-            }
-          }
-        }
-      }
-    }catch(e){}
-    
-    // Also try Firebase pull
-    try{
-      if(window.firebase && firebase.database){
-        let db = firebase.database();
-        db.ref('pothpoottu_live_final').once('value').then(snap=>{
-          let fb = snap.val();
-          if(!fb) return;
-          if(fb.currentId && fb.currentId != currentId){
-            let newComp = competitions.find(c=>c.id==fb.currentId);
-            if(newComp){
-              currentId = fb.currentId;
-              data = deepClone(newComp.data);
-              if(typeof renderDropdown === 'function') renderDropdown();
-              if(typeof render === 'function') render();
-            }
-          } else if(fb.currentData && fb.currentId==currentId){
-            if(JSON.stringify(fb.currentData) != JSON.stringify(data)){
-              data = deepClone(fb.currentData);
-              if(typeof render === 'function') render();
-            }
-          }
-        });
-      }
-    }catch(e){}
-    
-  }catch(e){ console.error('pull error', e); }
-}
-
-// Overrides
+// Override switch to keep 44 safe
 let origSwitch = window.switchCompetition;
 window.switchCompetition = function(id){
   try{
     id = parseInt(id);
     let old = competitions.find(c=>c.id==currentId);
     if(old) old.data = deepClone(data);
+    
     let cur = competitions.find(c=>c.id==id);
     if(!cur) return;
+    
     currentId = id;
     data = deepClone(cur.data);
+    
     try{
       localStorage.setItem('pothpoott_currentId', currentId.toString());
       localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
       localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
     }catch(e){}
-    ensure44();
-    syncBothPlaces();
+    
+    ensure44NeverDisappears();
+    syncBothPlacesSameName();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
-    lockPublicButtons();
-    if(window.isAdminUnlocked) setTimeout(pushLive, 300);
-  }catch(e){}
+  }catch(e){ console.error(e); }
 };
 
+// Override render
 let origRender = window.render;
 window.render = function(){
   try{ origRender(); }catch(e){}
-  ensure44();
-  syncBothPlaces();
-  lockPublicButtons();
+  ensure44NeverDisappears();
+  syncBothPlacesSameName();
 };
 
-// Init
+// On load
 document.addEventListener('DOMContentLoaded', ()=>{
   setTimeout(()=>{
-    ensure44();
-    syncBothPlaces();
+    ensure44NeverDisappears();
+    syncBothPlacesSameName();
     if(typeof renderDropdown === 'function') renderDropdown();
     if(typeof render === 'function') render();
-    lockPublicButtons();
-    
-    setInterval(()=>{
-      window.isAdminUnlocked = document.body.innerHTML.includes('Admin Editing') || document.body.innerHTML.includes('UNLOCKED - Unni');
-    }, 1000);
-    
-    // Public pulls every 2 sec, Admin pushes every 3 sec
-    setInterval(()=>{
-      if(window.isAdminUnlocked) pushLive();
-      else pullLive();
-    }, 2000);
-    
-    pullLive();
-    console.log('FINAL 100%: Admin=Public Same Sheet + Live Result + 44 Never Disappears');
-  }, 500);
+    console.log('FINAL: 44 Data NEVER disappears, Both places same name');
+  }, 300);
+  
+  setInterval(()=>{
+    ensure44NeverDisappears();
+    syncBothPlacesSameName();
+  }, 2000);
 });
+
+// Create new competition - ensure 44 stays
+let origCreate = window.createNewCompetition;
+window.createNewCompetition = function(){
+  try{
+    let old = competitions.find(c=>c.id==currentId);
+    if(old) old.data = deepClone(data);
+    
+    let malsaram = prompt('പുതിയ മത്സരത്തിന്റെ പേര്:') || 'പോത്ത്പൂട്ട്';
+    if(!malsaram) return;
+    let sthalam = prompt('സ്ഥലം:') || '';
+    let dateInput = prompt('തീയതി (YYYY-MM-DD):') || new Date().toISOString().split('T')[0];
+    
+    let blankData = Array(44).fill(0).map(()=>({name:'',r1:'',r2:'',r3:'',fd1:'',fd2:'',fd3:''}));
+    let newId = Date.now();
+    let newComp = {id: newId, malsaram: malsaram, sthalam: sthalam, date: dateInput, data: blankData, ts: newId};
+    competitions.push(newComp);
+    
+    ensure44NeverDisappears();
+    
+    currentId = newId;
+    data = deepClone(blankData);
+    
+    try{
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+      localStorage.setItem('pothpoott_currentId', currentId.toString());
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+    }catch(e){}
+    
+    syncBothPlacesSameName();
+    if(typeof renderDropdown === 'function') renderDropdown();
+    if(typeof render === 'function') render();
+    
+    alert('✅ പുതിയ ഷീറ്റ് Blank ആയി ഉണ്ടാക്കി! പഴയ 44 Data dropdown-ൽ safe ആണ്, ഒരിക്കലും പോകില്ല!');
+  }catch(e){ console.error(e); }
+};
 </script>
 
 </body></html>
