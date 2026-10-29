@@ -1572,4 +1572,96 @@ setTimeout(()=>{
 }, 1500);
 </script>
 
+
+<script>
+// === ONE-TIME LIVE SYNC - No more file upload for each competition ===
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026';
+const KVDB_URL = 'https://kvdb.io/' + KVDB_BUCKET + '/live_competition';
+
+async function pushLiveSheetKVDB(){
+  try{
+    if(!window.isAdminUnlocked) return;
+    let cur = competitions.find(c=>c.id==currentId);
+    if(!cur) return;
+    let payload = JSON.stringify({
+      currentId: currentId,
+      malsaram: cur.malsaram,
+      sthalam: cur.sthalam,
+      date: cur.date,
+      ts: Date.now()
+    });
+    // KVDB POST
+    await fetch(KVDB_URL, {
+      method: 'POST',
+      body: payload,
+      headers: {'Content-Type': 'text/plain'}
+    });
+    console.log('ONE-TIME LIVE: Admin sheet pushed to KVDB', cur.malsaram, cur.sthalam);
+    
+    // Also push to Firebase for data live
+    if(window.pushAdminLiveFinal) pushAdminLiveFinal();
+  }catch(e){ console.error('KVDB push error', e); }
+}
+
+async function pullLiveSheetKVDB(){
+  try{
+    if(window.isAdminUnlocked) return; // Admin doesn't pull
+    let res = await fetch(KVDB_URL);
+    if(!res.ok) return;
+    let text = await res.text();
+    if(!text) return;
+    let fb = JSON.parse(text);
+    if(!fb || !fb.currentId) return;
+    
+    if(fb.currentId != currentId){
+      console.log('ONE-TIME LIVE: Admin changed to', fb.malsaram, fb.sthalam, '- Public following SAME sheet');
+      // Find competition
+      let newComp = competitions.find(c=>c.id==fb.currentId);
+      if(!newComp){
+        // If not found in local competitions, try to fetch from Firebase or use meta
+        if(fb.malsaram){
+          // Create placeholder and wait for Firebase data sync
+          console.log('Competition not in local list, waiting for Firebase sync');
+          // Try to get from Firebase live data
+          return;
+        }
+      } else {
+        currentId = fb.currentId;
+        data = JSON.parse(JSON.stringify(newComp.data));
+        try{
+          localStorage.setItem('pothpoott_currentId', currentId.toString());
+          localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+        }catch(e){}
+        if(typeof renderDropdown === 'function') renderDropdown();
+        if(typeof render === 'function') render();
+      }
+    }
+  }catch(e){ console.error('KVDB pull error', e); }
+}
+
+// Override switch to push via KVDB
+let origSwitchOneTime = window.switchCompetition;
+window.switchCompetition = function(id){
+  origSwitchOneTime(id);
+  if(window.isAdminUnlocked){
+    setTimeout(pushLiveSheetKVDB, 500);
+  }
+};
+
+// Start polling for public
+setTimeout(()=>{
+  // Public polls every 3 seconds
+  if(!window.isAdminUnlocked){
+    setInterval(pullLiveSheetKVDB, 3000);
+    pullLiveSheetKVDB(); // Initial pull
+  }
+  // Admin pushes every 10 seconds as backup
+  setInterval(()=>{
+    if(window.isAdminUnlocked) pushLiveSheetKVDB();
+  }, 10000);
+}, 2000);
+
+console.log('ONE-TIME LIVE SYNC initialized - One upload is enough for all future competitions!');
+</script>
+
 </body></html>
