@@ -1,5 +1,22 @@
 <!DOCTYPE html>
-<html lang="ml"><head><meta charset="UTF-8">
+<html lang="ml"><head>
+<script>
+try{
+  // Clear old Valancheri fallbacks - 100% fix for heading mismatch
+  let curVer = localStorage.getItem('app_version');
+  if(curVer!=='V15_FINAL_HEADING_FIX'){
+    localStorage.removeItem('kaalapoottu_malsaram');
+    localStorage.removeItem('kaalapoottu_sthalam');
+    localStorage.removeItem('kaalapoottu_date');
+    localStorage.removeItem('pothpoott_history_v8');
+    localStorage.removeItem('pothpoott_currentId_v8');
+    localStorage.removeItem('pothpoott_currentId');
+    localStorage.removeItem('kaalapoottu_v2');
+    localStorage.setItem('app_version','V15_FINAL_HEADING_FIX');
+  }
+}catch(e){}
+</script>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- LIVE READY: Upload this file to GitHub Pages/Netlify - Admin edits live for viewers - No Size Change -->
 <title>പോത്ത്പൂട്ട് Live Result</title>
@@ -1127,9 +1144,9 @@ function handleDateChange(val){
 function loadMetaDate(){
  try{
   let cur=competitions.find(c=>c.id==currentId);
-  let d = cur && cur.date ? cur.date : (localStorage.getItem('kaalapoottu_date') || "2026-10-18");
-  let mVal = cur && cur.malsaram ? cur.malsaram : (localStorage.getItem('kaalapoottu_malsaram')||"പോത്ത്പൂട്ട്");
-  let sVal = cur && cur.sthalam ? cur.sthalam : (localStorage.getItem('kaalapoottu_sthalam')||"വളാഞ്ചേരി");
+  let d = cur && cur.date ? cur.date : "";
+  let mVal = cur && cur.malsaram ? cur.malsaram : "";
+  let sVal = cur && cur.sthalam ? cur.sthalam : "";
   let di=document.getElementById('dateInput');
   if(di){ di.value=d; }
   let mi=document.getElementById('malsaramInput');
@@ -1470,7 +1487,7 @@ window.render = function(){
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V14_FINAL_100_SAME';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V15_FINAL_HEADING_FIX';
 const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
 const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
 const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
