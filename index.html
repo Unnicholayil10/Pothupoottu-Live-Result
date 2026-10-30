@@ -1470,7 +1470,7 @@ window.render = function(){
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026FinalV4';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V14_FINAL_100_SAME';
 const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
 const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
 const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
@@ -1498,33 +1498,49 @@ async function pullLive(){
         let txt = await liveRes.text();
         if(txt){
           let live = JSON.parse(txt);
-          if(live && live.currentId && live.currentId != currentId){
-            try{
-              let compRes = await fetch(KVDB_COMPS);
-              if(compRes.ok){
-                let compTxt = await compRes.text();
-                if(compTxt){
-                  let newComps = JSON.parse(compTxt);
-                  if(newComps && newComps.length>0){
-                    competitions = newComps;
-                    try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+          // 100% FIX: Sync meta even when currentId same - Admin bottom row live
+          if(live && live.currentId){
+            if(live.currentId != currentId){
+              try{
+                let compRes = await fetch(KVDB_COMPS);
+                if(compRes.ok){
+                  let compTxt = await compRes.text();
+                  if(compTxt){
+                    let newComps = JSON.parse(compTxt);
+                    if(newComps && newComps.length>0){
+                      competitions = newComps;
+                      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+                    }
                   }
                 }
-              }
-            }catch(e){}
-            let newComp = competitions.find(c=>c.id==live.currentId);
-            if(newComp){
-              currentId = live.currentId;
-              data = deepClone(newComp.data);
-              try{
-                localStorage.setItem('pothpoott_currentId', currentId.toString());
-                localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
               }catch(e){}
-              if(typeof renderDropdown === 'function') renderDropdown();
-              syncBothPlaces();
-              if(typeof render === 'function') render();
-              updateButtons();
-              return;
+              let newComp = competitions.find(c=>c.id==live.currentId);
+              if(newComp){
+                currentId = live.currentId;
+                data = deepClone(newComp.data);
+                try{
+                  localStorage.setItem('pothpoott_currentId', currentId.toString());
+                  localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+                }catch(e){}
+                if(typeof renderDropdown === 'function') renderDropdown();
+                syncBothPlaces();
+                if(typeof render === 'function') render();
+                updateButtons();
+                return;
+              }
+            }
+            // Even if same ID, sync malsaram, sthalam, date live - 100% FIX
+            let cur = competitions.find(c=>c.id==currentId);
+            if(cur){
+              let changed = false;
+              if(live.malsaram!==undefined && cur.malsaram!=live.malsaram){ cur.malsaram=live.malsaram; changed=true; }
+              if(live.sthalam!==undefined && cur.sthalam!=live.sthalam){ cur.sthalam=live.sthalam; changed=true; }
+              if(live.date!==undefined && cur.date!=live.date){ cur.date=live.date; changed=true; }
+              if(changed){
+                try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+                syncBothPlaces();
+                if(typeof renderDropdown === 'function') renderDropdown();
+              }
             }
           }
         }
