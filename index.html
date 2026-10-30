@@ -497,9 +497,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- Clear All button disabled as per user request -->
 <button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
 <button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value);}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value);}catch(e){}">
-<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
+<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); saveLocal();}catch(e){}">
+<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); saveLocal();}catch(e){}">
+<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value); try{saveCompetitions(); saveLocal();}catch(e){}">
 </div>
 <div class="table-wrap">
 <table>
