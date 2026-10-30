@@ -1,22 +1,5 @@
 <!DOCTYPE html>
-<html lang="ml"><head>
-<script>
-try{
-  // Clear old Valancheri fallbacks - 100% fix for heading mismatch
-  let curVer = localStorage.getItem('app_version');
-  if(curVer!=='V15_FINAL_HEADING_FIX'){
-    localStorage.removeItem('kaalapoottu_malsaram');
-    localStorage.removeItem('kaalapoottu_sthalam');
-    localStorage.removeItem('kaalapoottu_date');
-    localStorage.removeItem('pothpoott_history_v8');
-    localStorage.removeItem('pothpoott_currentId_v8');
-    localStorage.removeItem('pothpoott_currentId');
-    localStorage.removeItem('kaalapoottu_v2');
-    localStorage.setItem('app_version','V15_FINAL_HEADING_FIX');
-  }
-}catch(e){}
-</script>
-<meta charset="UTF-8">
+<html lang="ml"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- LIVE READY: Upload this file to GitHub Pages/Netlify - Admin edits live for viewers - No Size Change -->
 <title>പോത്ത്പൂട്ട് Live Result</title>
@@ -461,9 +444,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- Clear All button disabled as per user request -->
 <button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
 <button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); try{pushLive();}catch(e){}}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); try{pushLive();}catch(e){}}catch(e){}">
-<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value); try{saveCompetitions(); pushLive();}catch(e){}">
+<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions();}catch(e){}">
+<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions();}catch(e){}">
+<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
 </div>
 <div class="table-wrap">
 <table>
@@ -1162,6 +1145,7 @@ function saveCompetitions(){
   let cur=competitions.find(c=>c.id==currentId);
   if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
   localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+  try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
   localStorage.setItem('pothpoott_currentId_v8', currentId);
   localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
   if(cur){
@@ -1169,7 +1153,6 @@ function saveCompetitions(){
    localStorage.setItem('kaalapoottu_sthalam', cur.sthalam);
    localStorage.setItem('kaalapoottu_date', cur.date);
   }
-  try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
  }catch(e){}
 }
 
@@ -1206,7 +1189,7 @@ function createNewCompetition(){
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
- renderCompSelect(); render(); loadMetaDate(); saveCompetitions(); try{pushLive();}catch(e){} try{pushLive();}catch(e){}
+ renderCompSelect(); render(); loadMetaDate(); saveCompetitions(); try{pushLive();}catch(e){}
  alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
 }
 
@@ -1339,7 +1322,6 @@ function ensure44Optional(){
         ts: 1760000000000
       });
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-      try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
   }catch(e){}
 }
@@ -1488,7 +1470,7 @@ window.render = function(){
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V15_FINAL_HEADING_FIX';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V17_ORIGINAL_ALIGNMENT_SAME';
 const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
 const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
 const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
@@ -1516,49 +1498,44 @@ async function pullLive(){
         let txt = await liveRes.text();
         if(txt){
           let live = JSON.parse(txt);
-          // 100% FIX: Sync meta even when currentId same - Admin bottom row live
           if(live && live.currentId){
             if(live.currentId != currentId){
-              try{
-                let compRes = await fetch(KVDB_COMPS);
-                if(compRes.ok){
-                  let compTxt = await compRes.text();
-                  if(compTxt){
-                    let newComps = JSON.parse(compTxt);
-                    if(newComps && newComps.length>0){
-                      competitions = newComps;
-                      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-                    }
+            try{
+              let compRes = await fetch(KVDB_COMPS);
+              if(compRes.ok){
+                let compTxt = await compRes.text();
+                if(compTxt){
+                  let newComps = JSON.parse(compTxt);
+                  if(newComps && newComps.length>0){
+                    competitions = newComps;
+                    try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
                   }
                 }
+              }
+            }catch(e){}
+            let newComp = competitions.find(c=>c.id==live.currentId);
+            if(newComp){
+              currentId = live.currentId;
+              data = deepClone(newComp.data);
+              try{
+                localStorage.setItem('pothpoott_currentId', currentId.toString());
+                localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
               }catch(e){}
-              let newComp = competitions.find(c=>c.id==live.currentId);
-              if(newComp){
-                currentId = live.currentId;
-                data = deepClone(newComp.data);
-                try{
-                  localStorage.setItem('pothpoott_currentId', currentId.toString());
-                  localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
-                }catch(e){}
-                if(typeof renderDropdown === 'function') renderDropdown();
-                syncBothPlaces();
-                if(typeof render === 'function') render();
-                updateButtons();
-                return;
-              }
+              if(typeof renderDropdown === 'function') renderDropdown();
+              syncBothPlaces();
+              if(typeof render === 'function') render();
+              updateButtons();
+              return;
             }
-            // Even if same ID, sync malsaram, sthalam, date live - 100% FIX
-            let cur = competitions.find(c=>c.id==currentId);
-            if(cur){
-              let changed = false;
-              if(live.malsaram!==undefined && cur.malsaram!=live.malsaram){ cur.malsaram=live.malsaram; changed=true; }
-              if(live.sthalam!==undefined && cur.sthalam!=live.sthalam){ cur.sthalam=live.sthalam; changed=true; }
-              if(live.date!==undefined && cur.date!=live.date){ cur.date=live.date; changed=true; }
-              if(changed){
-                try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-                syncBothPlaces();
-                if(typeof renderDropdown === 'function') renderDropdown();
-              }
+            }
+            let cur2 = competitions.find(c=>c.id==currentId);
+            if(cur2){
+              if(live.malsaram!==undefined && cur2.malsaram!=live.malsaram) cur2.malsaram=live.malsaram;
+              if(live.sthalam!==undefined && cur2.sthalam!=live.sthalam) cur2.sthalam=live.sthalam;
+              if(live.date!==undefined && cur2.date!=live.date) cur2.date=live.date;
+              try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+              syncBothPlaces();
+              if(typeof renderCompSelect === 'function') renderCompSelect();
             }
           }
         }
