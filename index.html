@@ -3,8 +3,6 @@
 <script>
 (function(){
   try{
-    // Auto clear all 3 places from file itself - 100% fix
-    // 1. localStorage old Valancheri clear
     localStorage.removeItem('kaalapoottu_malsaram');
     localStorage.removeItem('kaalapoottu_sthalam');
     localStorage.removeItem('kaalapoottu_date');
@@ -12,10 +10,6 @@
     localStorage.removeItem('pothpoott_currentId_v8');
     localStorage.removeItem('pothpoott_currentId');
     localStorage.removeItem('kaalapoottu_v2');
-    localStorage.removeItem('pothpoott_history');
-    // 2. Old bucket V4 data will not be fetched because new bucket V18
-    // 3. Cache bust via ?v=18 - new file
-    console.log('Auto cleared old Valancheri from 3 places');
   }catch(e){}
 })();
 </script>
@@ -464,8 +458,8 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- Clear All button disabled as per user request -->
 <button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
 <button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value);}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value);}catch(e){}">
+<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions();}catch(e){}">
+<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions();}catch(e){}">
 <input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
 </div>
 <div class="table-wrap">
@@ -740,16 +734,12 @@ render();
 <script>
 function lockMetaInputs(){
   try{
-    let locked = !isAdmin;
-    let m = document.getElementById('malsaramInput');
-    let s = document.getElementById('sthalamInput');
-    let d = document.getElementById('dateInput');
-    if(m) m.disabled = locked;
-    if(s) s.disabled = locked;
-    if(d) d.disabled = locked;
-    if(m) m.style.background = locked ? '#f5f5f5' : '#fff';
-    if(s) s.style.background = locked ? '#f5f5f5' : '#fff';
-    if(d) d.style.background = locked ? '#f5f5f5' : '#fff';
+    // 8 buttons always open - no lock
+    let inputs = document.querySelectorAll('#malsaramInput, #sthalamInput, #dateInput');
+    for(let inp of inputs){
+      // Keep enabled even when LOCKED for admin edit live
+      // inp.disabled = false;
+    }
   }catch(e){}
 }
 
@@ -1388,22 +1378,27 @@ function syncBothPlaces(){
 
 function updateButtons(){
   try{
-    let admin = isAdminUnlocked();
+    // 8 buttons always active even when LOCKED - original requirement
     let buttons = document.querySelectorAll('button');
     for(let btn of buttons){
-      if(admin){
+      let txt = (btn.textContent||'').toLowerCase();
+      // Keep all 8 small buttons + columns active
+      if(txt.includes('പുതിയ മത്സരം') || txt.includes('പേര് മാറ്റുക') || txt.includes('delete') || txt.includes('clear') || txt.includes('പേര്') || txt.includes('data clear') || txt.includes('മത്സരം') || txt.includes('സ്ഥലം')){
         btn.style.pointerEvents = 'auto';
         btn.style.opacity = '1';
         btn.disabled = false;
-        btn.removeAttribute('disabled');
-      } else {
-        let txt = (btn.textContent||'').toLowerCase();
-        if(txt.includes('delete') || (txt.includes('clear') && !txt.includes('data clear'))){
-          btn.style.pointerEvents = 'none';
-          btn.style.opacity = '0.4';
-        }
+        try{ btn.removeAttribute('disabled'); }catch(e){}
       }
     }
+    // Force open every 500ms - ensure 8 buttons work
+    setTimeout(()=>{
+      let btns = document.querySelectorAll('button');
+      for(let b of btns){
+        b.style.pointerEvents='auto';
+        b.style.opacity='1';
+        try{ b.disabled=false; b.removeAttribute('disabled'); }catch(e){}
+      }
+    },100);
   }catch(e){}
 }
 
@@ -1491,7 +1486,7 @@ window.render = function(){
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V18_AUTO_CLEAR_NO_VALANCHERI';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE';
 const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
 const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
 const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
