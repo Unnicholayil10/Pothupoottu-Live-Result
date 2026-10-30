@@ -444,9 +444,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- Clear All button disabled as per user request -->
 <button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
 <button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); saveLocal();}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); saveLocal();}catch(e){}">
-<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value); try{saveCompetitions(); saveLocal();}catch(e){}">
+<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); try{pushLive();}catch(e){}}catch(e){}">
+<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); try{pushLive();}catch(e){}}catch(e){}">
+<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value); try{saveCompetitions(); pushLive();}catch(e){}">
 </div>
 <div class="table-wrap">
 <table>
@@ -1152,6 +1152,7 @@ function saveCompetitions(){
    localStorage.setItem('kaalapoottu_sthalam', cur.sthalam);
    localStorage.setItem('kaalapoottu_date', cur.date);
   }
+  try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
  }catch(e){}
 }
 
@@ -1187,7 +1188,7 @@ function createNewCompetition(){
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
- renderCompSelect(); render(); loadMetaDate(); saveCompetitions();
+ renderCompSelect(); render(); loadMetaDate(); saveCompetitions(); try{pushLive();}catch(e){}
  alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
 }
 
