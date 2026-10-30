@@ -1189,6 +1189,7 @@ function switchCompetition(id){
  let cur=competitions.find(c=>c.id==currentId);
  if(cur){ data=cur.data; renderCompSelect(); render(); loadMetaDate(); }
  saveCompetitions();
+ try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
 }
 
 function createNewCompetition(){
@@ -1205,7 +1206,7 @@ function createNewCompetition(){
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
- renderCompSelect(); render(); loadMetaDate(); saveCompetitions(); try{pushLive();}catch(e){}
+ renderCompSelect(); render(); loadMetaDate(); saveCompetitions(); try{pushLive();}catch(e){} try{pushLive();}catch(e){}
  alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
 }
 
@@ -1328,17 +1329,17 @@ function isAdminUnlocked(){
 function ensure44Optional(){
   try{
     if(!window.competitions) competitions = [];
-    // Do NOT auto-add 44 if deleted - only ensure if list empty
     if(competitions.length==0){
       competitions.push({
         id: 1760000000000,
-        malsaram: 'പോത്ത്പൂട്ട്',
-        sthalam: 'വളാഞ്ചേരി',
-        date: '2026-10-18',
+        malsaram: '',
+        sthalam: '',
+        date: '',
         data: deepClone(window.ORIGINAL_44_DATA),
         ts: 1760000000000
       });
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+      try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
   }catch(e){}
 }
