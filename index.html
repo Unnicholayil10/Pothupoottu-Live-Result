@@ -1,5 +1,13 @@
 <!DOCTYPE html>
-<html lang="ml"><head><meta charset="UTF-8">
+<html lang="ml"><head>
+<script>
+try{
+  localStorage.removeItem('pothpoott_history_v8');
+  localStorage.removeItem('pothpoottu_competitions');
+  localStorage.removeItem('pothpoottu_current');
+}catch(e){}
+</script>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- LIVE READY: Upload this file to GitHub Pages/Netlify - Admin edits live for viewers - No Size Change -->
 <title>പോത്ത്പൂട്ട് Live Result</title>
@@ -191,7 +199,52 @@ td:hover .f-btn, td:focus-within .f-btn{
 </style>
 
 <script>
-window.ORIGINAL_44_DATA = [{"name": "പോത്ത് പൂട്ട് കമ്മറ്റി", "r1": "17.32", "fd1": "", "r2": "18.10", "fd2": "", "r3": "F", "fd3": ""}, {"name": "M ഇസ്മായിൽ കാവുംപുറം", "r1": "16.49", "fd1": "", "r2": "16.27", "fd2": "", "r3": "", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ Brothers തോട്ടപ്പായ", "r1": "16.80", "fd1": "", "r2": "16.36", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം", "r1": "17.02", "fd1": "", "r2": "F", "fd2": "14.77", "r3": "", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ", "r1": "16.32", "fd1": "", "r2": "15.99", "fd2": "", "r3": "16.76", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ ഹാജി വാണിയന്നൂർ", "r1": "16.40", "fd1": "", "r2": "15.79", "fd2": "", "r3": "15.64", "fd3": ""}, {"name": "അലി അക്ബർ കൊപ്പം പുലാശ്ശേരി", "r1": "16.69", "fd1": "", "r2": "16.17", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മുഹമ്മദ് ജുനൈസ് കുന്നക്കാവ്", "r1": "15.31", "fd1": "", "r2": "F", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മാനുപ്പ കൊടക്കല്ല്", "r1": "20.16", "fd1": "", "r2": "14.77", "fd2": "", "r3": "F", "fd3": ""}, {"name": "മാളിയേക്കൽ ഷാനുമോൻ വലമ്പൂർ", "r1": "15.42", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ബാവ പാങ്ങ്", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ പി ബക്കർ വാഴാങ്കട", "r1": "16.85", "fd1": "", "r2": "17.10", "fd2": "", "r3": "16.77", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം 2", "r1": "18.03", "fd1": "", "r2": "16.98", "fd2": "", "r3": "F", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട്", "r1": "15.21", "fd1": "", "r2": "15.05", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം", "r1": "14.73", "fd1": "", "r2": "14.49", "fd2": "", "r3": "14.26", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ ബ്രദേഴ്സ് തോട്ടപ്പായ 2", "r1": "15.06", "fd1": "", "r2": "14.61", "fd2": "", "r3": "14.81", "fd3": ""}, {"name": "കമ്മറ്റി പാറമലങ്ങാടി", "r1": "16.81", "fd1": "", "r2": "16.34", "fd2": "", "r3": "16.49", "fd3": ""}, {"name": "ടി സലാം കരേക്കാട്", "r1": "15.81", "fd1": "", "r2": "15.39", "fd2": "", "r3": "F", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട", "r1": "14.73", "fd1": "", "r2": "15.08", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി", "r1": "15.37", "fd1": "", "r2": "F", "fd2": "15.00", "r3": "", "fd3": ""}, {"name": "പൂണേരി ഫായിസ് ഇരിങ്ങാവൂർ", "r1": "15.85", "fd1": "", "r2": "14.97", "fd2": "", "r3": "15.21", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 2", "r1": "17.01", "fd1": "", "r2": "16.48", "fd2": "", "r3": "16.67", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചിരട്ടമല", "r1": "15.17", "fd1": "", "r2": "15.17", "fd2": "", "r3": "", "fd3": ""}, {"name": "കുന്നത്ത് അലി ആലിപ്പറമ്പ്", "r1": "14.40", "fd1": "", "r2": "14.33", "fd2": "", "r3": "14.75", "fd3": ""}, {"name": "T ശുഹൈബ് മോൻ ഉടമല", "r1": "16.88", "fd1": "", "r2": "16.50", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കട്ടേക്കാട്ടുപറമ്പിൽ സെയ്താലിക്കുട്ടി കൊപ്പം", "r1": "15.05", "fd1": "", "r2": "14.89", "fd2": "", "r3": "14.84", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ വാണിയുന്നൂർ 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "M ഇസ്മയിൽ കാവുംപുറം 2", "r1": "15.22", "fd1": "", "r2": "15.52", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ 2", "r1": "16.18", "fd1": "", "r2": "F", "fd2": "15.99", "r3": "", "fd3": ""}, {"name": "മാങ്കുന്നിൽ മാനു ഹാജി കരേക്കാട്", "r1": "15.48", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മുടപ്പക്കാട് 2", "r1": "F", "fd1": "14.99", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കൊന്നക്കാട്ടിൽ തിണ്ടലം 3", "r1": "15.38", "fd1": "", "r2": "15.11", "fd2": "", "r3": "15.13", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട് 2", "r1": "15.16", "fd1": "", "r2": "15.09", "fd2": "", "r3": "14.71", "fd3": ""}, {"name": "M ബാസിൽ പാറമ്മലങ്ങാടി", "r1": "14.78", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "തെച്ചിക്കടം ബ്രദേഴ്സ് തോട്ടപ്പായ 3", "r1": "14.96", "fd1": "", "r2": "14.81", "fd2": "", "r3": "F", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 3", "r1": "16.05", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട 2", "r1": "14.70", "fd1": "", "r2": "14.66", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി 2", "r1": "14.96", "fd1": "", "r2": "14.92", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പുളിക്കത്തൊട്ടിൽ ലിൻഷാ ഫാത്തിമ കരിങ്കല്ലത്താണി", "r1": "14.91", "fd1": "", "r2": "14.42", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം 2", "r1": "14.81", "fd1": "", "r2": "14.69", "fd2": "", "r3": "14.43", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മൊടക്കാട് 3", "r1": "14.73", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചരട്ടാമല 2", "r1": "14.56", "fd1": "", "r2": "14.50", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കട്ടേക്കാട് പറമ്പിൽ സൈതാലിക്കുട്ടി കൊപ്പം 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}];
+window.ORIGINAL_44_DATA = [
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""},
+  {name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}
+];
 window.ORIGINAL_44_ID = 1760000000000;
 </script>
 
@@ -720,16 +773,12 @@ render();
 <script>
 function lockMetaInputs(){
   try{
-    let locked = !isAdmin;
     let m = document.getElementById('malsaramInput');
     let s = document.getElementById('sthalamInput');
     let d = document.getElementById('dateInput');
-    if(m) m.disabled = locked;
-    if(s) s.disabled = locked;
-    if(d) d.disabled = locked;
-    if(m) m.style.background = locked ? '#f5f5f5' : '#fff';
-    if(s) s.style.background = locked ? '#f5f5f5' : '#fff';
-    if(d) d.style.background = locked ? '#f5f5f5' : '#fff';
+    if(m){ m.disabled=false; m.style.background='#fff'; }
+    if(s){ s.disabled=false; s.style.background='#fff'; }
+    if(d){ d.disabled=false; d.style.background='#fff'; }
   }catch(e){}
 }
 
@@ -995,8 +1044,8 @@ setTimeout(addWatermarkPerfect, 2500);
 <script>
 localStorage.setItem('kaalapoottu_v2', JSON.stringify([{"name": "പോത്ത് പൂട്ട് കമ്മറ്റി", "r1": "17.32", "fd1": "", "r2": "18.10", "fd2": "", "r3": "F", "fd3": ""}, {"name": "M ഇസ്മായിൽ കാവുംപുറം", "r1": "16.49", "fd1": "", "r2": "16.27", "fd2": "", "r3": "", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ Brothers തോട്ടപ്പായ", "r1": "16.80", "fd1": "", "r2": "16.36", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം", "r1": "17.02", "fd1": "", "r2": "F", "fd2": "14.77", "r3": "", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ", "r1": "16.32", "fd1": "", "r2": "15.99", "fd2": "", "r3": "16.76", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ ഹാജി വാണിയന്നൂർ", "r1": "16.40", "fd1": "", "r2": "15.79", "fd2": "", "r3": "15.64", "fd3": ""}, {"name": "അലി അക്ബർ കൊപ്പം പുലാശ്ശേരി", "r1": "16.69", "fd1": "", "r2": "16.17", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മുഹമ്മദ് ജുനൈസ് കുന്നക്കാവ്", "r1": "15.31", "fd1": "", "r2": "F", "fd2": "", "r3": "15.69", "fd3": ""}, {"name": "മാനുപ്പ കൊടക്കല്ല്", "r1": "20.16", "fd1": "", "r2": "14.77", "fd2": "", "r3": "F", "fd3": ""}, {"name": "മാളിയേക്കൽ ഷാനുമോൻ വലമ്പൂർ", "r1": "15.42", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ബാവ പാങ്ങ്", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ പി ബക്കർ വാഴാങ്കട", "r1": "16.85", "fd1": "", "r2": "17.10", "fd2": "", "r3": "16.77", "fd3": ""}, {"name": "കെനക്കാടിൽ തിണ്ടലം 2", "r1": "18.03", "fd1": "", "r2": "16.98", "fd2": "", "r3": "F", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട്", "r1": "15.21", "fd1": "", "r2": "15.05", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം", "r1": "14.73", "fd1": "", "r2": "14.49", "fd2": "", "r3": "14.26", "fd3": ""}, {"name": "നെച്ചിക്കാടൻ ബ്രദേഴ്സ് തോട്ടപ്പായ 2", "r1": "15.06", "fd1": "", "r2": "14.61", "fd2": "", "r3": "14.81", "fd3": ""}, {"name": "കമ്മറ്റി പാറമലങ്ങാടി", "r1": "16.81", "fd1": "", "r2": "16.34", "fd2": "", "r3": "16.49", "fd3": ""}, {"name": "ടി സലാം കരേക്കാട്", "r1": "15.81", "fd1": "", "r2": "15.39", "fd2": "", "r3": "F", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട", "r1": "14.73", "fd1": "", "r2": "15.08", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി", "r1": "15.37", "fd1": "", "r2": "F", "fd2": "15.00", "r3": "", "fd3": ""}, {"name": "പൂണേരി ഫായിസ് ഇരിങ്ങാവൂർ", "r1": "15.85", "fd1": "", "r2": "14.97", "fd2": "", "r3": "15.21", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 2", "r1": "17.01", "fd1": "", "r2": "16.48", "fd2": "", "r3": "16.67", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചിരട്ടമല", "r1": "15.17", "fd1": "", "r2": "15.17", "fd2": "", "r3": "", "fd3": ""}, {"name": "കുന്നത്ത് അലി ആലിപ്പറമ്പ്", "r1": "14.40", "fd1": "", "r2": "14.33", "fd2": "", "r3": "14.75", "fd3": ""}, {"name": "T ശുഹൈബ് മോൻ ഉടമല", "r1": "16.88", "fd1": "", "r2": "16.50", "fd2": "", "r3": "F", "fd3": ""}, {"name": "കട്ടേക്കാട്ടുപറമ്പിൽ സെയ്താലിക്കുട്ടി കൊപ്പം", "r1": "15.05", "fd1": "", "r2": "14.89", "fd2": "", "r3": "14.84", "fd3": ""}, {"name": "മാടക്കൽ ഇസ്മയിൽ വാണിയുന്നൂർ 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "M ഇസ്മയിൽ കാവുംപുറം 2", "r1": "15.22", "fd1": "", "r2": "15.52", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പറമ്പാട്ട് ബാബു പറവന്നൂർ 2", "r1": "16.18", "fd1": "", "r2": "F", "fd2": "15.99", "r3": "", "fd3": ""}, {"name": "മാങ്കുന്നിൽ മാനു ഹാജി കരേക്കാട്", "r1": "15.48", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മുടപ്പക്കാട് 2", "r1": "F", "fd1": "14.99", "r2": "", "fd2": "", "r3": "", "fd3": ""}, {"name": "കൊന്നക്കാട്ടിൽ തിണ്ടലം 3", "r1": "15.38", "fd1": "", "r2": "15.11", "fd2": "", "r3": "15.13", "fd3": ""}, {"name": "സിനാൻ മൂർക്കനാട് 2", "r1": "15.16", "fd1": "", "r2": "15.09", "fd2": "", "r3": "14.71", "fd3": ""}, {"name": "M ബാസിൽ പാറമ്മലങ്ങാടി", "r1": "14.78", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "തെച്ചിക്കടം ബ്രദേഴ്സ് തോട്ടപ്പായ 3", "r1": "14.96", "fd1": "", "r2": "14.81", "fd2": "", "r3": "F", "fd3": ""}, {"name": "ലക്ഷ്മി ഗ്രൂപ്പ് എടത്തനാട്ടുകര 3", "r1": "16.05", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "PT ബീഫ്സ്റ്റാൾ മങ്കട 2", "r1": "14.70", "fd1": "", "r2": "14.66", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പൊറ്റമ്മൽ മജീദ് പപ്പട്ടപ്പടി 2", "r1": "14.96", "fd1": "", "r2": "14.92", "fd2": "", "r3": "F", "fd3": ""}, {"name": "പുളിക്കത്തൊട്ടിൽ ലിൻഷാ ഫാത്തിമ കരിങ്കല്ലത്താണി", "r1": "14.91", "fd1": "", "r2": "14.42", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കളക്കണ്ടത്തിൽ ലത്തീഫ് ശാന്തപുരം 2", "r1": "14.81", "fd1": "", "r2": "14.69", "fd2": "", "r3": "14.43", "fd3": ""}, {"name": "കെ വി ഗ്രൂപ്പ് മൊടക്കാട് 3", "r1": "14.73", "fd1": "", "r2": "F", "fd2": "", "r3": "", "fd3": ""}, {"name": "ജബൽ ഗ്രൂപ്പ് ചരട്ടാമല 2", "r1": "14.56", "fd1": "", "r2": "14.50", "fd2": "", "r3": "14.65", "fd3": ""}, {"name": "കട്ടേക്കാട് പറമ്പിൽ സൈതാലിക്കുട്ടി കൊപ്പം 2", "r1": "F", "fd1": "", "r2": "", "fd2": "", "r3": "", "fd3": ""}]));
 localStorage.setItem('kaalapoottu_malsaram', 'പോത്ത് പൂട്ട്');
-localStorage.setItem('kaalapoottu_sthalam', 'വളാഞ്ചേരി');
-localStorage.setItem('kaalapoottu_date', '2026-10-18');
+localStorage.setItem('kaalapoottu_sthalam', '');
+localStorage.setItem('kaalapoottu_date', '2026-10-29');
 </script>
 
 
@@ -1080,12 +1129,12 @@ function loadCompetitions(){
       if(c.data && c.data.length && c.data.some(row=>row.name && row.name.trim()!="")){
         hasData=true;
         if(!bestComp) bestComp=c;
-        if(c.date==="2026-10-18") bestComp=c;
+        if(c.date==="2026-10-29") bestComp=c;
       }
     }
   }
   if(!competitions.length || !hasData){
-   competitions=[{id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"വളാഞ്ചേരി", date:"2026-10-18", data:JSON.parse(JSON.stringify(data)), ts:Date.now()}];
+   competitions=[{id:Date.now(), malsaram:"പോത്ത്പൂട്ട്", sthalam:"", date:"2026-10-29", data:JSON.parse(JSON.stringify(data)), ts:Date.now()}];
    bestComp=competitions[0];
   }
   // If currentId points to empty, switch to bestComp
@@ -1127,9 +1176,9 @@ function handleDateChange(val){
 function loadMetaDate(){
  try{
   let cur=competitions.find(c=>c.id==currentId);
-  let d = cur && cur.date ? cur.date : (localStorage.getItem('kaalapoottu_date') || "2026-10-18");
+  let d = cur && cur.date ? cur.date : (localStorage.getItem('kaalapoottu_date') || "2026-10-29");
   let mVal = cur && cur.malsaram ? cur.malsaram : (localStorage.getItem('kaalapoottu_malsaram')||"പോത്ത്പൂട്ട്");
-  let sVal = cur && cur.sthalam ? cur.sthalam : (localStorage.getItem('kaalapoottu_sthalam')||"വളാഞ്ചേരി");
+  let sVal = cur && cur.sthalam ? cur.sthalam : (localStorage.getItem('kaalapoottu_sthalam')||"");
   let di=document.getElementById('dateInput');
   if(di){ di.value=d; }
   let mi=document.getElementById('malsaramInput');
@@ -1174,21 +1223,25 @@ function switchCompetition(id){
 }
 
 function createNewCompetition(){
- if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം!"); return; }
- let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
- if(malsaram===null) return;
- let sthalam=prompt("സ്ഥലം:", "");
- if(sthalam===null) sthalam="";
- let dateInput=prompt("തീയതി (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
- if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
- saveCompetitions();
- let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<15;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
- competitions.unshift(newComp);
- currentId=newComp.id;
- data=newComp.data;
- renderCompSelect(); render(); loadMetaDate(); saveCompetitions();
- alert("✅ പുതിയ മത്സരം ഉണ്ടായി! പഴയത് SAVE ആയി! Dropdown-ൽ നിന്നും പഴയത് കാണാം!");
+  if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം!"); return; }
+  let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
+  if(malsaram===null) return;
+  let sthalam=prompt("സ്ഥലം:", "");
+  if(sthalam===null) sthalam="";
+  let dateInput=prompt("തീയതി (YYYY-MM-DD):", new Date().toISOString().slice(0,10));
+  if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
+  try{
+    // 100% - Don't save old to dropdown - Clear old history
+    localStorage.removeItem('pothpoott_history_v8');
+    competitions = [];
+    let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
+    for(let i=0;i<44;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+    competitions.unshift(newComp);
+    currentId=newComp.id;
+    data=newComp.data;
+    renderCompSelect(); render(); loadMetaDate(); saveCompetitions();
+    alert("✅ പുതിയ മത്സരം - 100% Blank - പുതിയത് തിരഞ്ഞെടുക്കാം!");
+  }catch(e){ console.log(e); alert('Error: '+e.message); }
 }
 
 
@@ -1315,8 +1368,8 @@ function ensure44Optional(){
       competitions.push({
         id: 1760000000000,
         malsaram: 'പോത്ത്പൂട്ട്',
-        sthalam: 'വളാഞ്ചേരി',
-        date: '2026-10-18',
+        sthalam: '',
+        date: '2026-10-29',
         data: deepClone(window.ORIGINAL_44_DATA),
         ts: 1760000000000
       });
@@ -1366,22 +1419,12 @@ function syncBothPlaces(){
 
 function updateButtons(){
   try{
-    let admin = isAdminUnlocked();
-    let buttons = document.querySelectorAll('button');
-    for(let btn of buttons){
-      if(admin){
-        btn.style.pointerEvents = 'auto';
-        btn.style.opacity = '1';
-        btn.disabled = false;
-        btn.removeAttribute('disabled');
-      } else {
-        let txt = (btn.textContent||'').toLowerCase();
-        if(txt.includes('delete') || (txt.includes('clear') && !txt.includes('data clear'))){
-          btn.style.pointerEvents = 'none';
-          btn.style.opacity = '0.4';
-        }
-      }
-    }
+    document.querySelectorAll('button').forEach(function(btn){
+      btn.style.pointerEvents='auto';
+      btn.style.opacity='1';
+      btn.disabled=false;
+      btn.removeAttribute('disabled');
+    });
   }catch(e){}
 }
 
@@ -1400,7 +1443,7 @@ window.deleteCompetition = function(){
     
     let msg = "⚠️ " + cur.malsaram + " (" + cur.sthalam + ") - " + cur.date + " ഈ മത്സരം Delete ചെയ്യണോ?";
     if(cur.id==1760000000000){
-      msg = "⚠️ 18-10-2026 വളാഞ്ചേരി 44 Original Data ആണ്! Delete ചെയ്യണോ?\n\nഇത് Delete ചെയ്താൽ പിന്നെ വേണമെങ്കിൽ പുതിയ മത്സരം ഉണ്ടാക്കി അതേ Data വീണ്ടും Add ചെയ്യാം";
+      msg = "⚠️ 18-10-2026  44 Original Data ആണ്! Delete ചെയ്യണോ?\n\nഇത് Delete ചെയ്താൽ പിന്നെ വേണമെങ്കിൽ പുതിയ മത്സരം ഉണ്ടാക്കി അതേ Data വീണ്ടും Add ചെയ്യാം";
     }
     if(!confirm(msg)) return;
     
@@ -1430,7 +1473,7 @@ window.deleteCompetition = function(){
       updateButtons();
       
       if(cur.id==1760000000000){
-        alert("✅ 18-10-2026 വളാഞ്ചേരി Deleted! ഇനി Dropdown-ൽ നിന്ന് പോയി");
+        alert("✅ 18-10-2026  Deleted! ഇനി Dropdown-ൽ നിന്ന് പോയി");
       } else {
         alert("✅ Deleted!");
       }
@@ -1469,10 +1512,10 @@ window.render = function(){
 };
 
 // Live sync
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026FinalV4';
-const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
-const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
-const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V17_DROPDOWN_CLEAR';
+const KVDB_LIVE = 'https://kvdb.io-disabled/' + KVDB_BUCKET + '/live';
+const KVDB_DATA = 'https://kvdb.io-disabled/' + KVDB_BUCKET + '/data';
+const KVDB_COMPS = 'https://kvdb.io-disabled/' + KVDB_BUCKET + '/comps';
 
 async function pushLive(){
   try{
