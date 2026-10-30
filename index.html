@@ -1224,7 +1224,7 @@ function switchCompetition(id){
 
 function createNewCompetition(){
   if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം പുതിയ മത്സരം ഉണ്ടാക്കാം!"); return; }
-  let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "പോത്ത്പൂട്ട്");
+  let malsaram=prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", "");
   if(malsaram===null) return;
   let sthalam=prompt("സ്ഥലം:", "");
   if(sthalam===null) sthalam="";
