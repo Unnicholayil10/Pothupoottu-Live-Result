@@ -386,90 +386,11 @@ td.rcell{position:relative !important}
 </style>
 
 
-<style>
-/* Photos back to old position, Live Result no border, password hidden until dot touch */
-.header{
-  display: none !important;
-  height: 0 !important;
-  overflow: hidden !important;
-}
-.status-bar{display:none !important}
-#historySelect{display:none !important}
-.history-label{display:none !important}
-
-.pothu-middle-title{
-  flex: 1 !important;
-  text-align: center !important;
-  color: #b71c1c !important;
-  font-size: 20px !important;
-  font-weight: 900 !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 8px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-}
-.pothu-middle-title h1{
-  color: #b71c1c !important;
-  font-size: 20px !important;
-  font-weight: 900 !important;
-  margin: 0 !important;
-  border: none !important;
-  background: transparent !important;
-}
-.pothu-middle-title .pwd-box{
-  display: none !important; /* Hidden by default, only when dot touched */
-}
-.pothu-middle-title .pwd-box.pwd-box-visible{
-  display: flex !important;
-}
-.pothu-row{
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 8px !important;
-  padding: 6px !important;
-  background: #fff !important;
-  border: 1px solid #ddd !important;
-}
-.pothu-row img{
-  width: 80px !important;
-  height: 80px !important;
-  object-fit: cover !important;
-  display: block !important;
-  flex-shrink: 0 !important;
-  border-radius: 6px !important;
-}
-/* Dot to touch */
-.admin-dot-trigger{
-  width: 14px !important;
-  height: 14px !important;
-  background: #b71c1c !important;
-  border-radius: 50% !important;
-  display: inline-block !important;
-  cursor: pointer !important;
-  margin-left: 8px !important;
-}
-</style>
-
-
-<style>
-.pothu-row img:first-child{ transform: translateX(-31mm) !important; }
-.pothu-row img:last-child{ transform: translateX(31mm) !important; }
-.pothu-row{ overflow: visible !important; background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 50%, #ffcc80 100%) !important; border: 2px solid #b71c1c !important; border-radius: 10px !important; }
-.pothu-middle-title{ background: transparent !important; border: none !important; }
-.pothu-middle-title h1{ color: #b71c1c !important; }
-</style>
-
-
-<!-- Firebase SDK -->
+<!-- Firebase SDK for permanent live -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script>
-// 🔥 FIREBASE CONFIG - നിങ്ങൾ Firebase-ൽ നിന്ന് എടുത്ത് ഇവിടെ പേസ്റ്റ് ചെയ്യുക
+// 🔥 REPLACE WITH YOUR FIREBASE CONFIG FROM CONSOLE
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -480,40 +401,38 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase
-let db;
+let db = null;
 try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  console.log("Firebase connected - Live forever!");
-} catch(e) {
-  console.log("Firebase not configured yet - using local only");
+  if(firebaseConfig.apiKey !== "YOUR_API_KEY"){
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    console.log("Firebase connected - heading also live forever");
+  } else {
+    console.log("Firebase config not set - replace YOUR_API_KEY with real config");
+  }
+} catch(e){ console.log("Firebase init error", e); }
+
+function saveHeadingToFirebase(mal, sth, dt){
+  if(!db) { console.log("DB not ready"); return; }
+  try{
+    db.ref('pothpoottu/meta').set({
+      malsaram: mal || '',
+      sthalam: sth || '',
+      date: dt || '',
+      ts: Date.now()
+    });
+    console.log("Heading saved to Firebase:", mal, sth, dt);
+  }catch(e){ console.log("Heading save error", e); }
 }
 
-// 🔥 Firebase Live Functions - kvdb-ക്ക് പകരം
-function firebaseSaveLive(data) {
-  if(!db) return;
-  try {
-    db.ref('pothpoottu/live').set({
-      data: data,
-      timestamp: Date.now(),
-      updatedBy: 'admin'
-    });
-    console.log("Saved to Firebase - Live forever!");
-  } catch(e) { console.log("Firebase save error", e); }
-}
-
-function firebaseLoadLive(callback) {
-  if(!db) return;
-  try {
-    db.ref('pothpoottu/live').on('value', (snapshot) => {
-      const val = snapshot.val();
-      if(val && val.data) {
-        console.log("Loaded from Firebase - Live data");
-        if(callback) callback(val.data);
-      }
-    });
-  } catch(e) { console.log("Firebase load error", e); }
+function saveLiveToFirebase(comp){
+  if(!db || !comp) return;
+  try{
+    db.ref('pothpoottu/live').set(comp);
+    // Also save meta
+    saveHeadingToFirebase(comp.malsaram, comp.sthalam, comp.date);
+    console.log("Live + Heading saved to Firebase");
+  }catch(e){ console.log(e); }
 }
 </script>
 
@@ -1293,8 +1212,7 @@ function loadMetaDate(){
  }catch(e){}
 }
 
-function saveCompetitions(){ try{ if(typeof firebaseSaveLive==='function' && window.currentData) firebaseSaveLive(window.currentData); }catch(e){} }
-function saveCompetitions_original(){
+function saveCompetitions(){
  try{
   let cur=competitions.find(c=>c.id==currentId);
   if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
@@ -1872,372 +1790,139 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
+// FINAL PATCH: Heading save - no other changes
 (function(){
-  function setupMiddle(){
+  // Wait for original functions to exist
+  function initPatch(){
     try{
-      let header=document.querySelector('.header');
-      let h1Orig=header?header.querySelector('h1'):null;
-      let pwdBox=document.getElementById('pwdBox');
-      let lockBtn=document.getElementById('lockBtn');
-      
-      // Find photo container - original has two images
-      let allImgs=document.querySelectorAll('img');
-      let pothuImgs=[];
-      allImgs.forEach(img=>{
-        if(img.src && img.src.includes('base64') && img.src.length>5000){
-          pothuImgs.push(img);
-        }
-      });
-      if(pothuImgs.length<2) return;
-      
-      let img1=pothuImgs[0];
-      let img2=pothuImgs[1];
-      let parent=img1.parentNode;
-      
-      if(document.querySelector('.pothu-middle-title')) return;
-      
-      // Create middle title container without border
-      let middle=document.createElement('div');
-      middle.className='pothu-middle-title';
-      
-      let title=document.createElement('h1');
-      title.innerHTML='🐂 പോത്ത്പൂട്ട് Live Result <span class="admin-dot-trigger" id="dotTrigger" title="Admin"></span>';
-      middle.appendChild(title);
-      
-      // Move pwdBox into middle, hidden by default
-      if(pwdBox){
-        pwdBox.classList.add('pwd-box-hidden');
-        pwdBox.classList.remove('pwd-box-visible');
-        pwdBox.style.display='none';
-        middle.appendChild(pwdBox);
-      }
-      
-      // Create row with photos at old position
-      let row=document.createElement('div');
-      row.className='pothu-row';
-      row.appendChild(img1);
-      row.appendChild(middle);
-      row.appendChild(img2);
-      
-      // Insert row before history-bar
-      let historyBar=document.querySelector('.history-bar');
-      if(historyBar && historyBar.parentNode){
-        historyBar.parentNode.insertBefore(row, historyBar);
-      }
-      
-      // Dot click shows password box
-      let dot=document.getElementById('dotTrigger');
-      if(dot && pwdBox){
-        dot.addEventListener('click', function(){
-          pwdBox.style.display='flex';
-          pwdBox.classList.remove('pwd-box-hidden');
-          pwdBox.classList.add('pwd-box-visible');
-          let input=document.getElementById('pwdInput');
-          if(input) input.focus();
-        });
-      }
-      
-      // After unlock, hide again
-      let origToggle=window.toggleLock;
-      if(origToggle){
-        window.toggleLock=function(){
-          let result=origToggle();
+      // 1. Patch createNewCompetition to save heading
+      if(window.createNewCompetition){
+        let origCreate = window.createNewCompetition;
+        window.createNewCompetition = function(){
+          origCreate();
           setTimeout(function(){
             try{
-              if(window.isAdmin){
-                // Admin unlocked - hide pwd box after 1 sec
-                setTimeout(function(){
-                  if(pwdBox){
-                    pwdBox.style.display='none';
-                    pwdBox.classList.add('pwd-box-hidden');
-                    pwdBox.classList.remove('pwd-box-visible');
-                  }
-                  document.body.classList.add('admin-unlocked');
-                }, 800);
-              } else {
-                document.body.classList.remove('admin-unlocked');
-                if(pwdBox){
-                  pwdBox.style.display='none';
-                }
+              let cur = window.competitions?.find(c=>c.id==window.currentId);
+              if(cur){
+                console.log("New competition created, saving heading:", cur.malsaram, cur.sthalam, cur.date);
+                if(typeof saveLiveToFirebase==='function') saveLiveToFirebase(cur);
+                if(typeof saveHeadingToFirebase==='function') saveHeadingToFirebase(cur.malsaram, cur.sthalam, cur.date);
               }
             }catch(e){}
-          }, 100);
+          }, 500);
         }
       }
       
-      // Hide original header
-      if(header) header.style.display='none';
-      
-    }catch(e){ console.log(e); }
-  }
-  
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(setupMiddle, 800);
-  });
-  setTimeout(setupMiddle, 2000);
-})();
-</script>
-
-
-<script>
-// Patch save to Firebase - call after original save
-(function(){
-  let origSave = window.saveCompetitions;
-  if(origSave){
-    window.saveCompetitions = function(){
-      origSave();
-      try{
-        // Save current competition data to Firebase
-        let current = competitions.find(c=>c.id==currentId);
-        if(current && typeof firebaseSaveLive==='function'){
-          firebaseSaveLive(current);
-        }
-      }catch(e){}
-    }
-  }
-  
-  // Load from Firebase on start for public
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      if(typeof firebaseLoadLive==='function'){
-        firebaseLoadLive(function(fbData){
-          try{
-            // If public viewer (not admin), show Firebase data
-            if(!window.isAdmin && fbData){
-              // Update display with live data
-              console.log("Public viewing Firebase live data");
-            }
-          }catch(e){}
-        });
-      }
-    }, 1000);
-  });
-})();
-</script>
-
-
-<script>
-// FIX: Header malsaram/sthalam/date also live to public
-(function(){
-  // Override updateMeta to also save to Firebase
-  let origUpdateMeta = window.updateMeta;
-  if(origUpdateMeta){
-    window.updateMeta = function(){
-      origUpdateMeta();
-      try{
-        let mal = document.getElementById('malsaramInput')?.value || '';
-        let sth = document.getElementById('sthalamInput')?.value || '';
-        let dt = document.getElementById('dateInput')?.value || '';
-        let cur = competitions.find(c=>c.id==currentId);
-        if(cur){
-          cur.malsaram = mal;
-          cur.sthalam = sth;
-          cur.date = dt;
-          if(typeof firebaseSaveLive==='function'){
-            firebaseSaveLive(cur);
-          }
-        }
-        // Also save meta separately for public header
-        if(typeof db!=='undefined' && db){
-          db.ref('pothpoottu/meta').set({
-            malsaram: mal,
-            sthalam: sth,
-            date: dt,
-            timestamp: Date.now()
-          });
-        }
-      }catch(e){ console.log(e); }
-    }
-  }
-  
-  // Public load meta for header
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      try{
-        if(typeof db!=='undefined' && db){
-          // Load meta for public
-          db.ref('pothpoottu/meta').on('value', (snap)=>{
-            let meta = snap.val();
-            if(meta && !window.isAdmin){
-              // Update header display for public
-              let h1 = document.querySelector('.pothu-middle-title h1');
-              if(h1 && meta.malsaram){
-                // Keep Live Result but show meta somewhere? User wants heading place/date visible to public
-                // Update title to include place/date if needed
-                console.log("Public meta loaded", meta);
-              }
-              // Update hidden inputs for display?
-              let malInput = document.getElementById('malsaramInput');
-              let sthInput = document.getElementById('sthalamInput');
-              let dateInput = document.getElementById('dateInput');
-              // For public, show in a display div if exists
-              let displayDiv = document.getElementById('publicMetaDisplay');
-              if(!displayDiv){
-                displayDiv = document.createElement('div');
-                displayDiv.id = 'publicMetaDisplay';
-                displayDiv.style.cssText = 'text-align:center;padding:6px;background:#fff3e0;border:1px solid #ddd;margin:4px 0;font-weight:bold;color:#b71c1c;';
-                let historyBar = document.querySelector('.history-bar');
-                if(historyBar && historyBar.parentNode){
-                  historyBar.parentNode.insertBefore(displayDiv, historyBar);
-                }
-              }
-              if(displayDiv){
-                displayDiv.textContent = `${meta.malsaram || ''} ${meta.sthalam || ''} ${meta.date || ''}`.trim() + ' - LIVE';
-              }
-            }
-          });
-          
-          // Also load full competition for public (including meta)
-          db.ref('pothpoottu/live').on('value', (snap)=>{
-            let val = snap.val();
-            if(val && val.data && !window.isAdmin){
-              let comp = val.data;
-              // If comp has meta, update display
-              if(comp.malsaram || comp.sthalam || comp.date){
-                let displayDiv = document.getElementById('publicMetaDisplay');
-                if(!displayDiv){
-                  displayDiv = document.createElement('div');
-                  displayDiv.id = 'publicMetaDisplay';
-                  displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff8e1;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;';
-                  let pothuRow = document.querySelector('.pothu-row');
-                  if(pothuRow && pothuRow.parentNode){
-                    pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
-                  }
-                }
-                if(displayDiv){
-                  let txt = '';
-                  if(comp.malsaram) txt += comp.malsaram + ' ';
-                  if(comp.sthalam) txt += '(' + comp.sthalam + ') ';
-                  if(comp.date) txt += comp.date + ' ';
-                  txt += ' - LIVE';
-                  displayDiv.textContent = txt;
-                }
-              }
-            }
-          });
-        }
-      }catch(e){}
-    }, 1500);
-  });
-})();
-</script>
-
-
-<script>
-// FINAL FIX: Heading also live, no other changes
-(function(){
-  // 1. When new competition created, save heading to Firebase
-  let origCreate = window.createNewCompetition;
-  if(origCreate){
-    window.createNewCompetition = function(){
-      origCreate();
-      try{
-        // After original creates, currentId is new
-        let cur = competitions.find(c=>c.id==currentId);
-        if(cur && typeof db!=='undefined' && db){
-          // Save full competition with heading
-          db.ref('pothpoottu/live').set(cur);
-          // Save meta separately for heading display
-          db.ref('pothpoottu/meta').set({
-            malsaram: cur.malsaram || '',
-            sthalam: cur.sthalam || '',
-            date: cur.date || '',
-            timestamp: Date.now()
-          });
-          console.log("New competition heading saved to Firebase:", cur.malsaram, cur.sthalam, cur.date);
-        }
-      }catch(e){ console.log(e); }
-    }
-  }
-  
-  // 2. When admin types in heading inputs, save immediately to Firebase
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
+      // 2. Patch malsaram/sthalam/date inputs to save heading live
       let malInput = document.getElementById('malsaramInput');
       let sthInput = document.getElementById('sthalamInput');
       let dateInput = document.getElementById('dateInput');
       
-      function saveHeadingToFirebase(){
+      function onHeadingChange(){
         try{
           let mal = malInput?.value || '';
           let sth = sthInput?.value || '';
           let dt = dateInput?.value || '';
-          let cur = competitions.find(c=>c.id==currentId);
+          let cur = window.competitions?.find(c=>c.id==window.currentId);
           if(cur){
             cur.malsaram = mal;
             cur.sthalam = sth;
             cur.date = dt;
           }
-          if(typeof db!=='undefined' && db){
-            db.ref('pothpoottu/meta').set({
-              malsaram: mal,
-              sthalam: sth,
-              date: dt,
-              timestamp: Date.now()
-            });
-            if(cur){
-              db.ref('pothpoottu/live').set(cur);
-            }
-            console.log("Heading saved to Firebase:", mal, sth, dt);
-          }
+          if(typeof saveHeadingToFirebase==='function') saveHeadingToFirebase(mal, sth, dt);
+          if(cur && typeof saveLiveToFirebase==='function') saveLiveToFirebase(cur);
+          // Also update local save
+          if(window.saveCompetitions) window.saveCompetitions();
         }catch(e){}
       }
       
-      if(malInput) malInput.addEventListener('input', saveHeadingToFirebase);
-      if(sthInput) sthInput.addEventListener('input', saveHeadingToFirebase);
-      if(dateInput) dateInput.addEventListener('change', saveHeadingToFirebase);
-      if(dateInput) dateInput.addEventListener('input', saveHeadingToFirebase);
-    }, 1000);
-  });
-  
-  // 3. Public view - show heading from Firebase
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      try{
-        if(typeof db!=='undefined' && db){
-          // Listen to meta
-          db.ref('pothpoottu/meta').on('value', (snap)=>{
-            let meta = snap.val();
-            if(!meta) return;
-            // For both admin and public, update display
-            let displayDiv = document.getElementById('publicMetaDisplay');
-            if(!displayDiv){
-              displayDiv = document.createElement('div');
-              displayDiv.id = 'publicMetaDisplay';
-              displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff8e1;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;display:block;';
-              let pothuRow = document.querySelector('.pothu-row');
-              if(pothuRow && pothuRow.parentNode){
-                pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
-              } else {
-                let hb = document.querySelector('.history-bar');
-                if(hb && hb.parentNode) hb.parentNode.insertBefore(displayDiv, hb);
-              }
+      if(malInput) { malInput.addEventListener('change', onHeadingChange); malInput.addEventListener('input', onHeadingChange); }
+      if(sthInput) { sthInput.addEventListener('change', onHeadingChange); sthInput.addEventListener('input', onHeadingChange); }
+      if(dateInput) { dateInput.addEventListener('change', onHeadingChange); dateInput.addEventListener('input', onHeadingChange); }
+      
+      // 3. Patch saveCompetitions to also save heading
+      if(window.saveCompetitions){
+        let origSave = window.saveCompetitions;
+        window.saveCompetitions = function(){
+          origSave();
+          try{
+            let cur = window.competitions?.find(c=>c.id==window.currentId);
+            if(cur && typeof saveLiveToFirebase==='function'){
+              saveLiveToFirebase(cur);
             }
-            let txt = '';
-            if(meta.malsaram) txt += meta.malsaram + ' ';
-            if(meta.sthalam) txt += '(' + meta.sthalam + ') ';
-            if(meta.date) txt += meta.date + ' ';
-            if(txt.trim()) txt += '- LIVE';
-            else txt = 'LIVE';
+          }catch(e){}
+        }
+      }
+      
+      // 4. Public - load heading from Firebase and display
+      if(db){
+        // Create display div for public heading
+        let displayDiv = document.getElementById('publicMetaDisplay');
+        if(!displayDiv){
+          displayDiv = document.createElement('div');
+          displayDiv.id = 'publicMetaDisplay';
+          displayDiv.style.cssText = 'text-align:center;padding:10px;background:#fff8e1;border:2px solid #b71c1c;border-radius:10px;margin:8px 0;font-weight:900;color:#b71c1c;font-size:18px;display:none;';
+          let pothuRow = document.querySelector('.pothu-row');
+          let historyBar = document.querySelector('.history-bar');
+          if(pothuRow && pothuRow.parentNode){
+            pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
+          } else if(historyBar){
+            historyBar.parentNode.insertBefore(displayDiv, historyBar);
+          }
+        }
+        
+        db.ref('pothpoottu/meta').on('value', (snap)=>{
+          let meta = snap.val();
+          if(!meta) return;
+          console.log("Public heading loaded from Firebase:", meta);
+          let txt = '';
+          if(meta.malsaram) txt += meta.malsaram + ' ';
+          if(meta.sthalam) txt += '(' + meta.sthalam + ') ';
+          if(meta.date) txt += meta.date + ' ';
+          if(txt.trim()) txt += '- LIVE';
+          else txt = 'LIVE';
+          if(displayDiv){
             displayDiv.textContent = txt;
             displayDiv.style.display = 'block';
-          });
-          
-          // Also listen to live for fallback
-          db.ref('pothpoottu/live').on('value', (snap)=>{
-            let val = snap.val();
-            if(!val || !val.malsaram) return;
-            // If meta listener hasn't fired, use live's meta
-            let displayDiv = document.getElementById('publicMetaDisplay');
-            if(displayDiv && !displayDiv.textContent.includes(val.malsaram)){
-              // Update if meta missing
-              if(!val.sthalam && !val.date) return;
-            }
-          });
-        }
-      }catch(e){}
-    }, 1500);
-  });
+          }
+        });
+        
+        // Also listen to live for fallback
+        db.ref('pothpoottu/live').on('value', (snap)=>{
+          let comp = snap.val();
+          if(!comp || !comp.malsaram) return;
+          // If meta not yet, use live's meta
+          let displayDiv = document.getElementById('publicMetaDisplay');
+          if(displayDiv && !displayDiv.textContent){
+            let txt = `${comp.malsaram||''} ${comp.sthalam? '('+comp.sthalam+')':''} ${comp.date||''} - LIVE`.trim();
+            displayDiv.textContent = txt;
+            displayDiv.style.display = 'block';
+          }
+          // If public, update competitions array
+          if(!window.isAdmin && comp && comp.data){
+            try{
+              // Update current competition data for public view
+              if(window.competitions && window.competitions.length>0){
+                let cur = window.competitions.find(c=>c.id==window.currentId);
+                if(cur){
+                  cur.malsaram = comp.malsaram;
+                  cur.sthalam = comp.sthalam;
+                  cur.date = comp.date;
+                  cur.data = comp.data;
+                  if(window.render) window.render();
+                }
+              }
+            }catch(e){}
+          }
+        });
+      }
+      
+      console.log("Heading live patch installed");
+    }catch(e){ console.log("Patch error", e); }
+  }
+  
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(initPatch, 1000); });
+  setTimeout(initPatch, 2500);
 })();
 </script>
 
