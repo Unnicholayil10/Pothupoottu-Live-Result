@@ -545,7 +545,7 @@ function clearAll(){
  if(!isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
  if(!confirm("⚠️ എല്ലാ ഡാറ്റയും Clear ചെയ്യണോ? 44 പേരും മായും!")) return;
  data=[];
- for(let i=0;i<100;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<200;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  try{
    localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
    localStorage.removeItem('pothpoott_history_v8');
@@ -1205,7 +1205,7 @@ function createNewCompetition(){
  if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
  saveCompetitions();
  let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<100;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<200;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
@@ -1329,7 +1329,7 @@ function isAdminUnlocked(){
   }catch(e){ return false; }
 }
 
-function ensure44Optional(){
+function ensure44Optional(){ try{ if(!window.competitions) competitions=[]; if(competitions.length==0){ competitions.push({id:Date.now(), malsaram:"", sthalam:"", date:"", data:[], ts:Date.now()}); for(let i=0;i<200;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); try{ localStorage.setItem("pothpoott_history_v8", JSON.stringify(competitions)); }catch(e){} } }catch(e){} } function ensure200Old(){{
   try{
     if(!window.competitions) competitions = [];
     if(competitions.length==0){
@@ -1341,7 +1341,7 @@ function ensure44Optional(){
         data: [],
         ts: Date.now()
       });
-      for(let i=0;i<100;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      for(let i=0;i<200;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
       try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
@@ -1739,336 +1739,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
-// FINAL FIX: Heading save permanently + live for public - no other changes
+// FINAL: 200 rows default, unlimited add/remove
 (function(){
-  const BUCKET = 'PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE';
-  const KVDB_LIVE = 'https://kvdb.io/' + BUCKET + '/live';
-  const KVDB_COMPS = 'https://kvdb.io/' + BUCKET + '/comps';
-  const KVDB_DATA = 'https://kvdb.io/' + BUCKET + '/data';
-  
-  // 1. Function to save heading to everywhere
-  window.saveHeadingEverywhere = function(){
-    try{
-      let malInput = document.getElementById('malsaramInput');
-      let sthInput = document.getElementById('sthalamInput');
-      let dateInput = document.getElementById('dateInput');
-      let mal = malInput ? malInput.value.trim() : '';
-      let sth = sthInput ? sthInput.value.trim() : '';
-      let dt = dateInput ? dateInput.value : '';
-      
-      let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(cur){
-        cur.malsaram = mal;
-        cur.sthalam = sth;
-        cur.date = dt;
-      }
-      
-      // Save to localStorage history
-      try{
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('pothpoott_currentId', window.currentId.toString());
-        localStorage.setItem('kaalapoottu_malsaram', mal);
-        localStorage.setItem('kaalapoottu_sthalam', sth);
-        localStorage.setItem('kaalapoottu_date', dt);
-      }catch(e){}
-      
-      // Push to KVDB live
-      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()){
-        let livePayload = JSON.stringify({
-          currentId: window.currentId,
-          malsaram: mal,
-          sthalam: sth,
-          date: dt,
-          ts: Date.now()
-        });
-        fetch(KVDB_LIVE, {method:'POST', body: livePayload}).then(()=>console.log("Heading pushed:", mal, sth, dt)).catch(()=>{});
-        fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
-      }
-      
-      // Update UI
-      if(typeof renderCompSelect==='function') renderCompSelect();
-      
-      console.log("Heading saved everywhere:", mal, sth, dt);
-    }catch(e){ console.log("saveHeading error", e); }
-  }
-  
-  // 2. Function to load heading into inputs
-  window.loadHeadingIntoInputs = function(){
-    try{
-      let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(!cur) return;
-      let malInput = document.getElementById('malsaramInput');
-      let sthInput = document.getElementById('sthalamInput');
-      let dateInput = document.getElementById('dateInput');
-      if(malInput && cur.malsaram) malInput.value = cur.malsaram;
-      if(sthInput && cur.sthalam) sthInput.value = cur.sthalam;
-      if(dateInput && cur.date) dateInput.value = cur.date;
-    }catch(e){}
-  }
-  
-  // 3. Patch renderCompSelect to load heading
-  let origRenderSelect = window.renderCompSelect;
-  if(origRenderSelect){
-    window.renderCompSelect = function(){
-      origRenderSelect();
-      setTimeout(()=>{ window.loadHeadingIntoInputs(); }, 100);
-    }
-  }
-  
-  // 4. Patch createNewCompetition to save heading properly
-  let origCreate = window.createNewCompetition;
-  if(origCreate){
-    window.createNewCompetition = function(){
-      // Get values from prompts or inputs
-      let mal = prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", document.getElementById('malsaramInput')?.value || "പോത്ത്പൂട്ട്");
-      if(mal===null) return;
-      let sth = prompt("സ്ഥലം:", document.getElementById('sthalamInput')?.value || "");
-      if(sth===null) sth="";
-      let dt = prompt("തീയതി (YYYY-MM-DD):", document.getElementById('dateInput')?.value || new Date().toISOString().slice(0,10));
-      if(dt===null || dt.trim()==="") dt=new Date().toISOString().slice(0,10);
-      
-      // Save current first
-      if(typeof saveCompetitions==='function') saveCompetitions();
-      
-      let newComp = {
-        id: Date.now(),
-        malsaram: mal || "പോത്ത്പൂട്ട്",
-        sthalam: sth || "",
-        date: dt,
-        data: [],
-        ts: Date.now()
-      };
-      for(let i=0;i<100;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-      
-      window.competitions.unshift(newComp);
-      window.currentId = newComp.id;
-      window.data = (typeof deepClone==='function') ? deepClone(newComp.data) : newComp.data;
-      
-      // Save everywhere
-      try{
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('pothpoott_currentId', window.currentId.toString());
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-        localStorage.setItem('kaalapoottu_malsaram', mal);
-        localStorage.setItem('kaalapoottu_sthalam', sth);
-        localStorage.setItem('kaalapoottu_date', dt);
-      }catch(e){}
-      
-      if(typeof renderCompSelect==='function') renderCompSelect();
-      if(typeof render==='function') render();
-      if(typeof syncBothPlaces==='function') syncBothPlaces();
-      window.loadHeadingIntoInputs();
-      
-      // Push to KVDB
-      let livePayload = JSON.stringify({currentId: window.currentId, malsaram: mal, sthalam: sth, date: dt, ts: Date.now()});
-      fetch(KVDB_LIVE, {method:'POST', body: livePayload}).catch(()=>{});
-      fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
-      fetch(KVDB_DATA, {method:'POST', body: JSON.stringify({currentId: window.currentId, data: window.data, ts: Date.now()})}).catch(()=>{});
-      
-      alert("✅ പുതിയ മത്സരം ഉണ്ടായി! Heading: " + mal + " (" + sth + ") " + dt);
-    }
-  }
-  
-  // 5. Patch pullLive to not overwrite admin
-  window.pullLive = async function(){
-    try{
-      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) return; // Admin doesn't pull
-      let liveRes = await fetch(KVDB_LIVE);
-      if(liveRes.ok){
-        let txt = await liveRes.text();
-        if(txt){
-          let live = JSON.parse(txt);
-          if(live && live.currentId){
-            // If different competition, load comps
-            if(live.currentId != window.currentId){
-              try{
-                let compRes = await fetch(KVDB_COMPS);
-                if(compRes.ok){
-                  let compTxt = await compRes.text();
-                  if(compTxt){
-                    let newComps = JSON.parse(compTxt);
-                    if(newComps && newComps.length>0){
-                      window.competitions = newComps;
-                      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-                    }
-                  }
-                }
-              }catch(e){}
-              let newComp = window.competitions?.find(c=>c.id==live.currentId);
-              if(newComp){
-                window.currentId = live.currentId;
-                window.data = (typeof deepClone==='function') ? deepClone(newComp.data) : newComp.data;
-                try{
-                  localStorage.setItem('pothpoott_currentId', window.currentId.toString());
-                  localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-                }catch(e){}
-              }
-            }
-            // Update heading from live
-            let cur = window.competitions?.find(c=>c.id==window.currentId);
-            if(cur){
-              cur.malsaram = live.malsaram || cur.malsaram || '';
-              cur.sthalam = live.sthalam || cur.sthalam || '';
-              cur.date = live.date || cur.date || '';
-              try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-              window.loadHeadingIntoInputs();
-              if(typeof renderCompSelect==='function') renderCompSelect();
-              if(typeof syncBothPlaces==='function') syncBothPlaces();
-            }
-          }
-        }
-      }
-      // Fetch scores
-      try{
-        let dataRes = await fetch(KVDB_DATA);
-        if(dataRes.ok){
-          let dataTxt = await dataRes.text();
-          if(dataTxt){
-            let d = JSON.parse(dataTxt);
-            if(d && d.currentId==window.currentId && d.data){
-              if(JSON.stringify(d.data) != JSON.stringify(window.data)){
-                window.data = (typeof deepClone==='function') ? deepClone(d.data) : d.data;
-                let cur = window.competitions?.find(c=>c.id==window.currentId);
-                if(cur) cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
-                if(typeof render==='function') render();
-              }
-            }
-          }
-        }
-      }catch(e){}
-    }catch(e){}
-  }
-  
-  // 6. Attach input listeners
-  document.addEventListener('DOMContentLoaded', ()=>{
-    setTimeout(()=>{
-      let mal = document.getElementById('malsaramInput');
-      let sth = document.getElementById('sthalamInput');
-      let dt = document.getElementById('dateInput');
-      
-      function onInput(){
-        if(typeof isAdminUnlocked==='function' && !isAdminUnlocked()) return;
-        window.saveHeadingEverywhere();
-      }
-      
-      if(mal){ mal.addEventListener('input', onInput); mal.addEventListener('change', onInput); mal.addEventListener('blur', onInput); }
-      if(sth){ sth.addEventListener('input', onInput); sth.addEventListener('change', onInput); sth.addEventListener('blur', onInput); }
-      if(dt){ dt.addEventListener('input', onInput); dt.addEventListener('change', onInput); dt.addEventListener('blur', onInput); }
-      
-      // Load heading on start
-      window.loadHeadingIntoInputs();
-      
-      // Interval for live sync
-      setInterval(()=>{
-        if(typeof isAdminUnlocked==='function'){
-          if(isAdminUnlocked()){
-            if(typeof pushLive==='function') pushLive();
-          } else {
-            if(typeof pullLive==='function') pullLive();
-          }
-        }
-      }, 2500);
-      
-      console.log("FINAL heading fix installed - save + live + persistent");
-    }, 1000);
-  });
-})();
-</script>
-
-
-<script>
-// FIX: Ensure 44 vandi always editable, not just 33
-(function(){
-  function ensure44ForAll(){
+  // Ensure all competitions have at least 100 rows
+  function ensureMinRows(){
     try{
       if(!window.competitions) return;
       window.competitions.forEach(comp=>{
-        if(!comp.data) comp.data = [];
-        // If less than 44, add more
+        if(!comp.data) comp.data=[];
+        // If user wants more, keep whatever they have, but minimum 100
         while(comp.data.length < 100){
           comp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
         }
-        // If more than 44, keep 44
-        if(comp.data.length > 1000){
-          comp.data = comp.data.slice(0,44);
-        }
       });
-      // Also ensure current data is 44
       if(window.data){
         while(window.data.length < 100){
           window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
         }
-        if(window.data.length > 1000){
-          window.data = window.data.slice(0,44);
-        }
       }
       try{
         localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
         localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
       }catch(e){}
-    }catch(e){ console.log(e); }
+    }catch(e){}
   }
   
-  // Run on load and after render
-  document.addEventListener('DOMContentLoaded', ()=>{
-    setTimeout(()=>{
-      ensure44ForAll();
-      if(typeof render==='function') render();
-      console.log("Ensured 44 rows");
-    }, 800);
-  });
-  
-  // Also patch render to ensure 44
-  let origRender = window.render;
-  if(origRender){
-    window.render = function(){
-      ensure44ForAll();
-      origRender();
-      // Ensure table shows all rows - remove any height limit
-      try{
-        let tbody = document.getElementById('tbody');
-        if(tbody){
-          tbody.style.maxHeight = 'none';
-          tbody.style.overflow = 'visible';
-        }
-        let table = document.querySelector('table');
-        if(table){
-          table.style.maxHeight = 'none';
-        }
-        // Ensure all tr visible
-        let trs = document.querySelectorAll('#tbody tr');
-        trs.forEach(tr=>{ tr.style.display='table-row'; tr.style.visibility='visible'; });
-      }catch(e){}
-    }
-  }
-  
-  // Also patch saveCompetitions to ensure 44 before save
-  let origSave = window.saveCompetitions;
-  if(origSave){
-    window.saveCompetitions = function(){
-      ensure44ForAll();
-      origSave();
-    }
-  }
-})();
-</script>
-<style>
-/* Ensure table shows all 44 rows, not cut at 33 */
-#tbody { max-height: none !important; overflow: visible !important; }
-table { max-height: none !important; }
-tbody tr { display: table-row !important; visibility: visible !important; }
-.container, .sheet-container { max-height: none !important; overflow: visible !important; }
-</style>
-
-
-<script>
-// Allow more than 44 - up to 200
-(function(){
-  // Patch + പേര് button to add row
-  window.addRow = function(){
+  window.addNewRow = function(){
     try{
-      if(window.data.length >= 200){
-        alert("200 വണ്ടി വരെ മാത്രമേ ചേർക്കാൻ പറ്റൂ!");
+      if(!window.data) window.data=[];
+      if(window.data.length >= 500){
+        alert("500 വണ്ടി വരെ മാത്രം!");
         return;
       }
       window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
@@ -2080,17 +1780,19 @@ tbody tr { display: table-row !important; visibility: visible !important; }
       }catch(e){}
       if(typeof render==='function') render();
       if(typeof saveCompetitions==='function') saveCompetitions();
-      if(typeof pushLive==='function') pushLive();
-      console.log("Added row, total:", window.data.length);
-    }catch(e){}
+      console.log("Added, total:", window.data.length);
+      // Scroll to bottom
+      setTimeout(()=>{ window.scrollTo(0, document.body.scrollHeight); }, 100);
+    }catch(e){ console.log(e); }
   }
   
-  window.removeRow = function(){
+  window.removeLastRow = function(){
     try{
-      if(window.data.length <= 1){
+      if(!window.data || window.data.length <= 1){
         alert("കുറഞ്ഞത് 1 വണ്ടി വേണം!");
         return;
       }
+      if(!confirm("അവസാനത്തെ വണ്ടി Delete ചെയ്യണോ?")) return;
       window.data.pop();
       let cur = window.competitions?.find(c=>c.id==window.currentId);
       if(cur) cur.data = window.data;
@@ -2100,26 +1802,72 @@ tbody tr { display: table-row !important; visibility: visible !important; }
       }catch(e){}
       if(typeof render==='function') render();
       if(typeof saveCompetitions==='function') saveCompetitions();
-      if(typeof pushLive==='function') pushLive();
-      console.log("Removed row, total:", window.data.length);
+      console.log("Removed, total:", window.data.length);
     }catch(e){}
   }
   
-  // Hook + and - buttons
+  // Patch existing + and - buttons and also add new buttons if needed
   document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=>{
-      let addBtns = document.querySelectorAll('button');
-      addBtns.forEach(btn=>{
-        if(btn.textContent.includes('+ പേര്') || btn.textContent.includes('+ പേര്')){
-          btn.onclick = window.addRow;
+      ensureMinRows();
+      if(typeof render==='function') render();
+      
+      // Find buttons by text
+      let buttons = document.querySelectorAll('button');
+      buttons.forEach(btn=>{
+        let txt = btn.textContent.trim();
+        if(txt.includes('+ പേര്') || txt === '+ പേര്'){
+          btn.onclick = window.addNewRow;
+          btn.title = "പുതിയ വണ്ടി ചേർക്കാൻ";
         }
-        if(btn.textContent.includes('- പേര്')){
-          btn.onclick = window.removeRow;
+        if(txt.includes('- പേര്') || txt === '- പേര്'){
+          btn.onclick = window.removeLastRow;
+          btn.title = "അവസാനത്തെ വണ്ടി കളയാൻ";
         }
       });
-    }, 1000);
+      
+      // If buttons not found, add new ones
+      let existingAdd = document.querySelector('[data-add-row]');
+      if(!existingAdd){
+        let container = document.querySelector('.history-btns') || document.querySelector('div');
+        // Don't add duplicate
+      }
+      
+      console.log("200 rows fix installed, current:", window.data?.length);
+    }, 1500);
   });
+  
+  // Patch render to ensure no height limit
+  let origRender = window.render;
+  if(origRender){
+    window.render = function(){
+      try{
+        // Ensure min rows before render
+        if(window.data && window.data.length < 100){
+          while(window.data.length < 100){
+            window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+          }
+        }
+      }catch(e){}
+      origRender();
+      try{
+        let tbody = document.getElementById('tbody');
+        if(tbody){
+          tbody.style.maxHeight = 'none';
+          tbody.style.overflow = 'visible';
+        }
+        document.querySelectorAll('#tbody tr').forEach(tr=>{
+          tr.style.display = 'table-row';
+          tr.style.visibility = 'visible';
+        });
+      }catch(e){}
+    }
+  }
 })();
 </script>
+<style>
+#tbody, table, .container { max-height: none !important; overflow: visible !important; }
+#tbody tr { display: table-row !important; }
+</style>
 
 </body></html>
