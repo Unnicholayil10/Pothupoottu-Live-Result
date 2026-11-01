@@ -385,61 +385,6 @@ body.admin-unlocked .corner{display:block !important}
 td.rcell{position:relative !important}
 </style>
 
-
-<script>
-// KVDB.IO for heading also - NO CONFIG NEEDED, permanent fix for now
-const KVDB_BUCKET = 'pothpoottu_heading_live_v1'; // Free bucket
-const KVDB_BASE = 'https://kvdb.io/' + KVDB_BUCKET + '/';
-
-function saveHeadingKVDB(mal, sth, dt){
-  try{
-    let meta = {malsaram: mal||'', sthalam: sth||'', date: dt||'', ts: Date.now()};
-    fetch(KVDB_BASE + 'meta', {
-      method: 'POST',
-      body: JSON.stringify(meta)
-    }).then(()=>console.log("Heading saved to KVDB:", meta)).catch(()=>{});
-    // Also save to localStorage as backup
-    try{
-      localStorage.setItem('kaalapoottu_malsaram', mal||'');
-      localStorage.setItem('kaalapoottu_sthalam', sth||'');
-      localStorage.setItem('kaalapoottu_date', dt||'');
-    }catch(e){}
-  }catch(e){}
-}
-
-function loadHeadingKVDB(){
-  try{
-    fetch(KVDB_BASE + 'meta')
-      .then(r=>r.json())
-      .then(meta=>{
-        if(!meta || !meta.malsaram) return;
-        console.log("Public heading loaded from KVDB:", meta);
-        let displayDiv = document.getElementById('publicMetaDisplay');
-        if(!displayDiv){
-          displayDiv = document.createElement('div');
-          displayDiv.id = 'publicMetaDisplay';
-          displayDiv.style.cssText = 'text-align:center;padding:10px;background:#fff8e1;border:2px solid #b71c1c;border-radius:10px;margin:8px 0;font-weight:900;color:#b71c1c;font-size:18px;display:block;';
-          let pothuRow = document.querySelector('.pothu-row');
-          let historyBar = document.querySelector('.history-bar');
-          if(pothuRow && pothuRow.parentNode){
-            pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
-          } else if(historyBar){
-            historyBar.parentNode.insertBefore(displayDiv, historyBar);
-          }
-        }
-        let txt = '';
-        if(meta.malsaram) txt += meta.malsaram + ' ';
-        if(meta.sthalam) txt += '(' + meta.sthalam + ') ';
-        if(meta.date) txt += meta.date + ' ';
-        if(txt.trim()) txt += '- LIVE';
-        else txt = 'LIVE';
-        displayDiv.textContent = txt;
-        displayDiv.style.display = 'block';
-      }).catch(()=>{});
-  }catch(e){}
-}
-</script>
-
 </head><body>
 
 <style>
@@ -1794,52 +1739,164 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
-// FINAL: Heading also live via KVDB - NO CONFIG NEEDED - no other changes
+// ROBUST FIX: Heading 100% live via KVDB - no Firebase config needed
 (function(){
-  function init(){
+  // Use same bucket as original - ensure heading always pushed and pulled
+  const BUCKET = 'PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE';
+  const KVDB_LIVE = 'https://kvdb.io/' + BUCKET + '/live';
+  const KVDB_COMPS = 'https://kvdb.io/' + BUCKET + '/comps';
+  const KVDB_DATA = 'https://kvdb.io/' + BUCKET + '/data';
+  
+  // Override pushLive to always include heading
+  window.pushLive = async function(){
     try{
-      // Patch createNewCompetition
-      if(window.createNewCompetition){
-        let orig = window.createNewCompetition;
-        window.createNewCompetition = function(){
-          orig();
-          setTimeout(()=>{
-            try{
+      if(typeof isAdminUnlocked==='function' && !isAdminUnlocked()) return;
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(!cur) return;
+      // Ensure cur has latest heading from inputs
+      try{
+        let mal = document.getElementById('malsaramInput')?.value || cur.malsaram || '';
+        let sth = document.getElementById('sthalamInput')?.value || cur.sthalam || '';
+        let dt = document.getElementById('dateInput')?.value || cur.date || '';
+        cur.malsaram = mal;
+        cur.sthalam = sth;
+        cur.date = dt;
+        cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
+      }catch(e){}
+      
+      let livePayload = JSON.stringify({
+        currentId: window.currentId,
+        malsaram: cur.malsaram || '',
+        sthalam: cur.sthalam || '',
+        date: cur.date || '',
+        ts: Date.now()
+      });
+      let dataPayload = JSON.stringify({
+        currentId: window.currentId,
+        data: window.data,
+        ts: Date.now()
+      });
+      
+      // Push all three - heading via live, score via data, full via comps
+      fetch(KVDB_LIVE, {method:'POST', body: livePayload}).catch(()=>{});
+      fetch(KVDB_DATA, {method:'POST', body: dataPayload}).catch(()=>{});
+      fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      
+      console.log("Pushed heading live:", cur.malsaram, cur.sthalam, cur.date);
+    }catch(e){ console.log("pushLive error", e); }
+  }
+  
+  // Override pullLive to always update heading from live payload
+  window.pullLive = async function(){
+    try{
+      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) return;
+      // Fetch live (heading + currentId)
+      try{
+        let liveRes = await fetch(KVDB_LIVE);
+        if(liveRes.ok){
+          let txt = await liveRes.text();
+          if(txt){
+            let live = JSON.parse(txt);
+            if(live && live.currentId){
+              // Update heading even if currentId differs
               let cur = window.competitions?.find(c=>c.id==window.currentId);
-              if(cur){
-                console.log("New comp heading save via KVDB:", cur.malsaram, cur.sthalam, cur.date);
-                saveHeadingKVDB(cur.malsaram, cur.sthalam, cur.date);
+              let newCur = window.competitions?.find(c=>c.id==live.currentId);
+              
+              // If currentId changed, fetch comps and switch
+              if(live.currentId != window.currentId){
+                try{
+                  let compRes = await fetch(KVDB_COMPS);
+                  if(compRes.ok){
+                    let compTxt = await compRes.text();
+                    if(compTxt){
+                      let newComps = JSON.parse(compTxt);
+                      if(newComps && newComps.length>0){
+                        window.competitions = newComps;
+                        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+                      }
+                    }
+                  }
+                }catch(e){}
+                
+                newCur = window.competitions?.find(c=>c.id==live.currentId);
+                if(newCur){
+                  window.currentId = live.currentId;
+                  window.data = (typeof deepClone==='function') ? deepClone(newCur.data) : newCur.data;
+                  try{
+                    localStorage.setItem('pothpoott_currentId', window.currentId.toString());
+                    localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+                  }catch(e){}
+                  if(typeof renderCompSelect==='function') renderCompSelect();
+                  if(typeof syncBothPlaces==='function') syncBothPlaces();
+                  if(typeof render==='function') render();
+                }
               }
-            }catch(e){}
-          }, 500);
+              
+              // ALWAYS update heading from live payload - even if comps not fetched
+              let targetCur = window.competitions?.find(c=>c.id==window.currentId);
+              if(targetCur){
+                if(live.malsaram!==undefined) targetCur.malsaram = live.malsaram;
+                if(live.sthalam!==undefined) targetCur.sthalam = live.sthalam;
+                if(live.date!==undefined) targetCur.date = live.date;
+                try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+                if(typeof syncBothPlaces==='function') syncBothPlaces();
+                if(typeof renderCompSelect==='function') renderCompSelect();
+                // Update display div for public
+                let displayDiv = document.getElementById('publicMetaDisplay');
+                if(!displayDiv){
+                  displayDiv = document.createElement('div');
+                  displayDiv.id = 'publicMetaDisplay';
+                  displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff3e0;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;';
+                  let pr = document.querySelector('.pothu-row');
+                  if(pr && pr.parentNode) pr.parentNode.insertBefore(displayDiv, pr.nextSibling);
+                }
+                if(displayDiv){
+                  let t = `${live.malsaram||''} ${live.sthalam? '('+live.sthalam+')':''} ${live.date||''} - LIVE`.trim();
+                  if(t) { displayDiv.textContent = t; displayDiv.style.display='block'; }
+                }
+              }
+            }
+          }
         }
-      }
-      // Patch heading inputs
+      }catch(e){}
+      
+      // Fetch data (scores)
+      try{
+        let dataRes = await fetch(KVDB_DATA);
+        if(dataRes.ok){
+          let dataTxt = await dataRes.text();
+          if(dataTxt){
+            let d = JSON.parse(dataTxt);
+            if(d && d.currentId==window.currentId && d.data){
+              if(JSON.stringify(d.data) != JSON.stringify(window.data)){
+                window.data = (typeof deepClone==='function') ? deepClone(d.data) : d.data;
+                let cur = window.competitions?.find(c=>c.id==window.currentId);
+                if(cur) cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
+                if(typeof render==='function') render();
+              }
+            }
+          }
+        }
+      }catch(e){}
+    }catch(e){ console.log("pullLive error", e); }
+  }
+  
+  // Force push when heading inputs change
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
       let mal = document.getElementById('malsaramInput');
       let sth = document.getElementById('sthalamInput');
       let dt = document.getElementById('dateInput');
-      function onChange(){
-        try{
-          let m = mal?.value||'', s = sth?.value||'', d = dt?.value||'';
-          let cur = window.competitions?.find(c=>c.id==window.currentId);
-          if(cur){ cur.malsaram=m; cur.sthalam=s; cur.date=d; }
-          saveHeadingKVDB(m,s,d);
-          if(window.saveCompetitions) window.saveCompetitions();
-        }catch(e){}
+      function pushHeading(){
+        if(typeof isAdminUnlocked==='function' && !isAdminUnlocked()) return;
+        setTimeout(()=>{ if(window.pushLive) window.pushLive(); }, 300);
       }
-      if(mal){ mal.addEventListener('input', onChange); mal.addEventListener('change', onChange); }
-      if(sth){ sth.addEventListener('input', onChange); sth.addEventListener('change', onChange); }
-      if(dt){ dt.addEventListener('input', onChange); dt.addEventListener('change', onChange); }
-      
-      // Public load heading
-      setInterval(loadHeadingKVDB, 3000); // Refresh every 3 sec
-      setTimeout(loadHeadingKVDB, 1000);
-      
-      console.log("Heading KVDB patch installed - NO CONFIG NEEDED");
-    }catch(e){}
-  }
-  document.addEventListener('DOMContentLoaded', ()=>setTimeout(init, 1500));
-  setTimeout(init, 3000);
+      if(mal){ mal.addEventListener('input', pushHeading); mal.addEventListener('change', pushHeading); }
+      if(sth){ sth.addEventListener('input', pushHeading); sth.addEventListener('change', pushHeading); }
+      if(dt){ dt.addEventListener('input', pushHeading); dt.addEventListener('change', pushHeading); }
+      console.log("Heading live fix installed - KVDB bucket:", BUCKET);
+    }, 1000);
+  });
 })();
 </script>
 
