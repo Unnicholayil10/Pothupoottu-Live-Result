@@ -464,6 +464,59 @@ td.rcell{position:relative !important}
 .pothu-middle-title h1{ color: #b71c1c !important; }
 </style>
 
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script>
+// 🔥 FIREBASE CONFIG - നിങ്ങൾ Firebase-ൽ നിന്ന് എടുത്ത് ഇവിടെ പേസ്റ്റ് ചെയ്യുക
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+let db;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  console.log("Firebase connected - Live forever!");
+} catch(e) {
+  console.log("Firebase not configured yet - using local only");
+}
+
+// 🔥 Firebase Live Functions - kvdb-ക്ക് പകരം
+function firebaseSaveLive(data) {
+  if(!db) return;
+  try {
+    db.ref('pothpoottu/live').set({
+      data: data,
+      timestamp: Date.now(),
+      updatedBy: 'admin'
+    });
+    console.log("Saved to Firebase - Live forever!");
+  } catch(e) { console.log("Firebase save error", e); }
+}
+
+function firebaseLoadLive(callback) {
+  if(!db) return;
+  try {
+    db.ref('pothpoottu/live').on('value', (snapshot) => {
+      const val = snapshot.val();
+      if(val && val.data) {
+        console.log("Loaded from Firebase - Live data");
+        if(callback) callback(val.data);
+      }
+    });
+  } catch(e) { console.log("Firebase load error", e); }
+}
+</script>
+
 </head><body>
 
 <style>
@@ -1240,7 +1293,8 @@ function loadMetaDate(){
  }catch(e){}
 }
 
-function saveCompetitions(){
+function saveCompetitions(){ try{ if(typeof firebaseSaveLive==='function' && window.currentData) firebaseSaveLive(window.currentData); }catch(e){} }
+function saveCompetitions_original(){
  try{
   let cur=competitions.find(c=>c.id==currentId);
   if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
@@ -1921,6 +1975,150 @@ document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(setupMiddle, 800);
   });
   setTimeout(setupMiddle, 2000);
+})();
+</script>
+
+
+<script>
+// Patch save to Firebase - call after original save
+(function(){
+  let origSave = window.saveCompetitions;
+  if(origSave){
+    window.saveCompetitions = function(){
+      origSave();
+      try{
+        // Save current competition data to Firebase
+        let current = competitions.find(c=>c.id==currentId);
+        if(current && typeof firebaseSaveLive==='function'){
+          firebaseSaveLive(current);
+        }
+      }catch(e){}
+    }
+  }
+  
+  // Load from Firebase on start for public
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      if(typeof firebaseLoadLive==='function'){
+        firebaseLoadLive(function(fbData){
+          try{
+            // If public viewer (not admin), show Firebase data
+            if(!window.isAdmin && fbData){
+              // Update display with live data
+              console.log("Public viewing Firebase live data");
+            }
+          }catch(e){}
+        });
+      }
+    }, 1000);
+  });
+})();
+</script>
+
+
+<script>
+// FIX: Header malsaram/sthalam/date also live to public
+(function(){
+  // Override updateMeta to also save to Firebase
+  let origUpdateMeta = window.updateMeta;
+  if(origUpdateMeta){
+    window.updateMeta = function(){
+      origUpdateMeta();
+      try{
+        let mal = document.getElementById('malsaramInput')?.value || '';
+        let sth = document.getElementById('sthalamInput')?.value || '';
+        let dt = document.getElementById('dateInput')?.value || '';
+        let cur = competitions.find(c=>c.id==currentId);
+        if(cur){
+          cur.malsaram = mal;
+          cur.sthalam = sth;
+          cur.date = dt;
+          if(typeof firebaseSaveLive==='function'){
+            firebaseSaveLive(cur);
+          }
+        }
+        // Also save meta separately for public header
+        if(typeof db!=='undefined' && db){
+          db.ref('pothpoottu/meta').set({
+            malsaram: mal,
+            sthalam: sth,
+            date: dt,
+            timestamp: Date.now()
+          });
+        }
+      }catch(e){ console.log(e); }
+    }
+  }
+  
+  // Public load meta for header
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      try{
+        if(typeof db!=='undefined' && db){
+          // Load meta for public
+          db.ref('pothpoottu/meta').on('value', (snap)=>{
+            let meta = snap.val();
+            if(meta && !window.isAdmin){
+              // Update header display for public
+              let h1 = document.querySelector('.pothu-middle-title h1');
+              if(h1 && meta.malsaram){
+                // Keep Live Result but show meta somewhere? User wants heading place/date visible to public
+                // Update title to include place/date if needed
+                console.log("Public meta loaded", meta);
+              }
+              // Update hidden inputs for display?
+              let malInput = document.getElementById('malsaramInput');
+              let sthInput = document.getElementById('sthalamInput');
+              let dateInput = document.getElementById('dateInput');
+              // For public, show in a display div if exists
+              let displayDiv = document.getElementById('publicMetaDisplay');
+              if(!displayDiv){
+                displayDiv = document.createElement('div');
+                displayDiv.id = 'publicMetaDisplay';
+                displayDiv.style.cssText = 'text-align:center;padding:6px;background:#fff3e0;border:1px solid #ddd;margin:4px 0;font-weight:bold;color:#b71c1c;';
+                let historyBar = document.querySelector('.history-bar');
+                if(historyBar && historyBar.parentNode){
+                  historyBar.parentNode.insertBefore(displayDiv, historyBar);
+                }
+              }
+              if(displayDiv){
+                displayDiv.textContent = `${meta.malsaram || ''} ${meta.sthalam || ''} ${meta.date || ''}`.trim() + ' - LIVE';
+              }
+            }
+          });
+          
+          // Also load full competition for public (including meta)
+          db.ref('pothpoottu/live').on('value', (snap)=>{
+            let val = snap.val();
+            if(val && val.data && !window.isAdmin){
+              let comp = val.data;
+              // If comp has meta, update display
+              if(comp.malsaram || comp.sthalam || comp.date){
+                let displayDiv = document.getElementById('publicMetaDisplay');
+                if(!displayDiv){
+                  displayDiv = document.createElement('div');
+                  displayDiv.id = 'publicMetaDisplay';
+                  displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff8e1;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;';
+                  let pothuRow = document.querySelector('.pothu-row');
+                  if(pothuRow && pothuRow.parentNode){
+                    pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
+                  }
+                }
+                if(displayDiv){
+                  let txt = '';
+                  if(comp.malsaram) txt += comp.malsaram + ' ';
+                  if(comp.sthalam) txt += '(' + comp.sthalam + ') ';
+                  if(comp.date) txt += comp.date + ' ';
+                  txt += ' - LIVE';
+                  displayDiv.textContent = txt;
+                }
+              }
+            }
+          });
+        }
+      }catch(e){}
+    }, 1500);
+  });
 })();
 </script>
 
