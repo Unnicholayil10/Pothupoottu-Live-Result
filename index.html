@@ -545,7 +545,7 @@ function clearAll(){
  if(!isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
  if(!confirm("⚠️ എല്ലാ ഡാറ്റയും Clear ചെയ്യണോ? 44 പേരും മായും!")) return;
  data=[];
- for(let i=0;i<44;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<100;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  try{
    localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
    localStorage.removeItem('pothpoott_history_v8');
@@ -1205,7 +1205,7 @@ function createNewCompetition(){
  if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
  saveCompetitions();
  let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<44;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<100;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
@@ -1341,7 +1341,7 @@ function ensure44Optional(){
         data: [],
         ts: Date.now()
       });
-      for(let i=0;i<44;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      for(let i=0;i<100;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
       try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
@@ -1838,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         data: [],
         ts: Date.now()
       };
-      for(let i=0;i<44;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      for(let i=0;i<100;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
       
       window.competitions.unshift(newComp);
       window.currentId = newComp.id;
@@ -1970,6 +1970,153 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }, 2500);
       
       console.log("FINAL heading fix installed - save + live + persistent");
+    }, 1000);
+  });
+})();
+</script>
+
+
+<script>
+// FIX: Ensure 44 vandi always editable, not just 33
+(function(){
+  function ensure44ForAll(){
+    try{
+      if(!window.competitions) return;
+      window.competitions.forEach(comp=>{
+        if(!comp.data) comp.data = [];
+        // If less than 44, add more
+        while(comp.data.length < 100){
+          comp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+        }
+        // If more than 44, keep 44
+        if(comp.data.length > 1000){
+          comp.data = comp.data.slice(0,44);
+        }
+      });
+      // Also ensure current data is 44
+      if(window.data){
+        while(window.data.length < 100){
+          window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+        }
+        if(window.data.length > 1000){
+          window.data = window.data.slice(0,44);
+        }
+      }
+      try{
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+      }catch(e){}
+    }catch(e){ console.log(e); }
+  }
+  
+  // Run on load and after render
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      ensure44ForAll();
+      if(typeof render==='function') render();
+      console.log("Ensured 44 rows");
+    }, 800);
+  });
+  
+  // Also patch render to ensure 44
+  let origRender = window.render;
+  if(origRender){
+    window.render = function(){
+      ensure44ForAll();
+      origRender();
+      // Ensure table shows all rows - remove any height limit
+      try{
+        let tbody = document.getElementById('tbody');
+        if(tbody){
+          tbody.style.maxHeight = 'none';
+          tbody.style.overflow = 'visible';
+        }
+        let table = document.querySelector('table');
+        if(table){
+          table.style.maxHeight = 'none';
+        }
+        // Ensure all tr visible
+        let trs = document.querySelectorAll('#tbody tr');
+        trs.forEach(tr=>{ tr.style.display='table-row'; tr.style.visibility='visible'; });
+      }catch(e){}
+    }
+  }
+  
+  // Also patch saveCompetitions to ensure 44 before save
+  let origSave = window.saveCompetitions;
+  if(origSave){
+    window.saveCompetitions = function(){
+      ensure44ForAll();
+      origSave();
+    }
+  }
+})();
+</script>
+<style>
+/* Ensure table shows all 44 rows, not cut at 33 */
+#tbody { max-height: none !important; overflow: visible !important; }
+table { max-height: none !important; }
+tbody tr { display: table-row !important; visibility: visible !important; }
+.container, .sheet-container { max-height: none !important; overflow: visible !important; }
+</style>
+
+
+<script>
+// Allow more than 44 - up to 200
+(function(){
+  // Patch + പേര് button to add row
+  window.addRow = function(){
+    try{
+      if(window.data.length >= 200){
+        alert("200 വണ്ടി വരെ മാത്രമേ ചേർക്കാൻ പറ്റൂ!");
+        return;
+      }
+      window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(cur) cur.data = window.data;
+      try{
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+      }catch(e){}
+      if(typeof render==='function') render();
+      if(typeof saveCompetitions==='function') saveCompetitions();
+      if(typeof pushLive==='function') pushLive();
+      console.log("Added row, total:", window.data.length);
+    }catch(e){}
+  }
+  
+  window.removeRow = function(){
+    try{
+      if(window.data.length <= 1){
+        alert("കുറഞ്ഞത് 1 വണ്ടി വേണം!");
+        return;
+      }
+      window.data.pop();
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(cur) cur.data = window.data;
+      try{
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+      }catch(e){}
+      if(typeof render==='function') render();
+      if(typeof saveCompetitions==='function') saveCompetitions();
+      if(typeof pushLive==='function') pushLive();
+      console.log("Removed row, total:", window.data.length);
+    }catch(e){}
+  }
+  
+  // Hook + and - buttons
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      let addBtns = document.querySelectorAll('button');
+      addBtns.forEach(btn=>{
+        if(btn.textContent.includes('+ പേര്') || btn.textContent.includes('+ പേര്')){
+          btn.onclick = window.addRow;
+        }
+        if(btn.textContent.includes('- പേര്')){
+          btn.onclick = window.removeRow;
+        }
+      });
     }, 1000);
   });
 })();
