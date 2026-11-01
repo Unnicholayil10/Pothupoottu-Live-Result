@@ -1739,128 +1739,186 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
-// ROBUST FIX: Heading 100% live via KVDB - no Firebase config needed
+// FINAL FIX: Heading save permanently + live for public - no other changes
 (function(){
-  // Use same bucket as original - ensure heading always pushed and pulled
   const BUCKET = 'PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE';
   const KVDB_LIVE = 'https://kvdb.io/' + BUCKET + '/live';
   const KVDB_COMPS = 'https://kvdb.io/' + BUCKET + '/comps';
   const KVDB_DATA = 'https://kvdb.io/' + BUCKET + '/data';
   
-  // Override pushLive to always include heading
-  window.pushLive = async function(){
+  // 1. Function to save heading to everywhere
+  window.saveHeadingEverywhere = function(){
     try{
-      if(typeof isAdminUnlocked==='function' && !isAdminUnlocked()) return;
+      let malInput = document.getElementById('malsaramInput');
+      let sthInput = document.getElementById('sthalamInput');
+      let dateInput = document.getElementById('dateInput');
+      let mal = malInput ? malInput.value.trim() : '';
+      let sth = sthInput ? sthInput.value.trim() : '';
+      let dt = dateInput ? dateInput.value : '';
+      
       let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(!cur) return;
-      // Ensure cur has latest heading from inputs
-      try{
-        let mal = document.getElementById('malsaramInput')?.value || cur.malsaram || '';
-        let sth = document.getElementById('sthalamInput')?.value || cur.sthalam || '';
-        let dt = document.getElementById('dateInput')?.value || cur.date || '';
+      if(cur){
         cur.malsaram = mal;
         cur.sthalam = sth;
         cur.date = dt;
-        cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
+      }
+      
+      // Save to localStorage history
+      try{
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('pothpoott_currentId', window.currentId.toString());
+        localStorage.setItem('kaalapoottu_malsaram', mal);
+        localStorage.setItem('kaalapoottu_sthalam', sth);
+        localStorage.setItem('kaalapoottu_date', dt);
       }catch(e){}
       
-      let livePayload = JSON.stringify({
-        currentId: window.currentId,
-        malsaram: cur.malsaram || '',
-        sthalam: cur.sthalam || '',
-        date: cur.date || '',
-        ts: Date.now()
-      });
-      let dataPayload = JSON.stringify({
-        currentId: window.currentId,
-        data: window.data,
-        ts: Date.now()
-      });
+      // Push to KVDB live
+      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()){
+        let livePayload = JSON.stringify({
+          currentId: window.currentId,
+          malsaram: mal,
+          sthalam: sth,
+          date: dt,
+          ts: Date.now()
+        });
+        fetch(KVDB_LIVE, {method:'POST', body: livePayload}).then(()=>console.log("Heading pushed:", mal, sth, dt)).catch(()=>{});
+        fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      }
       
-      // Push all three - heading via live, score via data, full via comps
-      fetch(KVDB_LIVE, {method:'POST', body: livePayload}).catch(()=>{});
-      fetch(KVDB_DATA, {method:'POST', body: dataPayload}).catch(()=>{});
-      fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      // Update UI
+      if(typeof renderCompSelect==='function') renderCompSelect();
       
-      console.log("Pushed heading live:", cur.malsaram, cur.sthalam, cur.date);
-    }catch(e){ console.log("pushLive error", e); }
+      console.log("Heading saved everywhere:", mal, sth, dt);
+    }catch(e){ console.log("saveHeading error", e); }
   }
   
-  // Override pullLive to always update heading from live payload
+  // 2. Function to load heading into inputs
+  window.loadHeadingIntoInputs = function(){
+    try{
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(!cur) return;
+      let malInput = document.getElementById('malsaramInput');
+      let sthInput = document.getElementById('sthalamInput');
+      let dateInput = document.getElementById('dateInput');
+      if(malInput && cur.malsaram) malInput.value = cur.malsaram;
+      if(sthInput && cur.sthalam) sthInput.value = cur.sthalam;
+      if(dateInput && cur.date) dateInput.value = cur.date;
+    }catch(e){}
+  }
+  
+  // 3. Patch renderCompSelect to load heading
+  let origRenderSelect = window.renderCompSelect;
+  if(origRenderSelect){
+    window.renderCompSelect = function(){
+      origRenderSelect();
+      setTimeout(()=>{ window.loadHeadingIntoInputs(); }, 100);
+    }
+  }
+  
+  // 4. Patch createNewCompetition to save heading properly
+  let origCreate = window.createNewCompetition;
+  if(origCreate){
+    window.createNewCompetition = function(){
+      // Get values from prompts or inputs
+      let mal = prompt("പുതിയ മത്സരത്തിന്റെ പേര് (ഇനം):", document.getElementById('malsaramInput')?.value || "പോത്ത്പൂട്ട്");
+      if(mal===null) return;
+      let sth = prompt("സ്ഥലം:", document.getElementById('sthalamInput')?.value || "");
+      if(sth===null) sth="";
+      let dt = prompt("തീയതി (YYYY-MM-DD):", document.getElementById('dateInput')?.value || new Date().toISOString().slice(0,10));
+      if(dt===null || dt.trim()==="") dt=new Date().toISOString().slice(0,10);
+      
+      // Save current first
+      if(typeof saveCompetitions==='function') saveCompetitions();
+      
+      let newComp = {
+        id: Date.now(),
+        malsaram: mal || "പോത്ത്പൂട്ട്",
+        sthalam: sth || "",
+        date: dt,
+        data: [],
+        ts: Date.now()
+      };
+      for(let i=0;i<44;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      
+      window.competitions.unshift(newComp);
+      window.currentId = newComp.id;
+      window.data = (typeof deepClone==='function') ? deepClone(newComp.data) : newComp.data;
+      
+      // Save everywhere
+      try{
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('pothpoott_currentId', window.currentId.toString());
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        localStorage.setItem('kaalapoottu_malsaram', mal);
+        localStorage.setItem('kaalapoottu_sthalam', sth);
+        localStorage.setItem('kaalapoottu_date', dt);
+      }catch(e){}
+      
+      if(typeof renderCompSelect==='function') renderCompSelect();
+      if(typeof render==='function') render();
+      if(typeof syncBothPlaces==='function') syncBothPlaces();
+      window.loadHeadingIntoInputs();
+      
+      // Push to KVDB
+      let livePayload = JSON.stringify({currentId: window.currentId, malsaram: mal, sthalam: sth, date: dt, ts: Date.now()});
+      fetch(KVDB_LIVE, {method:'POST', body: livePayload}).catch(()=>{});
+      fetch(KVDB_COMPS, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      fetch(KVDB_DATA, {method:'POST', body: JSON.stringify({currentId: window.currentId, data: window.data, ts: Date.now()})}).catch(()=>{});
+      
+      alert("✅ പുതിയ മത്സരം ഉണ്ടായി! Heading: " + mal + " (" + sth + ") " + dt);
+    }
+  }
+  
+  // 5. Patch pullLive to not overwrite admin
   window.pullLive = async function(){
     try{
-      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) return;
-      // Fetch live (heading + currentId)
-      try{
-        let liveRes = await fetch(KVDB_LIVE);
-        if(liveRes.ok){
-          let txt = await liveRes.text();
-          if(txt){
-            let live = JSON.parse(txt);
-            if(live && live.currentId){
-              // Update heading even if currentId differs
-              let cur = window.competitions?.find(c=>c.id==window.currentId);
-              let newCur = window.competitions?.find(c=>c.id==live.currentId);
-              
-              // If currentId changed, fetch comps and switch
-              if(live.currentId != window.currentId){
-                try{
-                  let compRes = await fetch(KVDB_COMPS);
-                  if(compRes.ok){
-                    let compTxt = await compRes.text();
-                    if(compTxt){
-                      let newComps = JSON.parse(compTxt);
-                      if(newComps && newComps.length>0){
-                        window.competitions = newComps;
-                        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-                      }
+      if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) return; // Admin doesn't pull
+      let liveRes = await fetch(KVDB_LIVE);
+      if(liveRes.ok){
+        let txt = await liveRes.text();
+        if(txt){
+          let live = JSON.parse(txt);
+          if(live && live.currentId){
+            // If different competition, load comps
+            if(live.currentId != window.currentId){
+              try{
+                let compRes = await fetch(KVDB_COMPS);
+                if(compRes.ok){
+                  let compTxt = await compRes.text();
+                  if(compTxt){
+                    let newComps = JSON.parse(compTxt);
+                    if(newComps && newComps.length>0){
+                      window.competitions = newComps;
+                      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
                     }
                   }
+                }
+              }catch(e){}
+              let newComp = window.competitions?.find(c=>c.id==live.currentId);
+              if(newComp){
+                window.currentId = live.currentId;
+                window.data = (typeof deepClone==='function') ? deepClone(newComp.data) : newComp.data;
+                try{
+                  localStorage.setItem('pothpoott_currentId', window.currentId.toString());
+                  localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
                 }catch(e){}
-                
-                newCur = window.competitions?.find(c=>c.id==live.currentId);
-                if(newCur){
-                  window.currentId = live.currentId;
-                  window.data = (typeof deepClone==='function') ? deepClone(newCur.data) : newCur.data;
-                  try{
-                    localStorage.setItem('pothpoott_currentId', window.currentId.toString());
-                    localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-                  }catch(e){}
-                  if(typeof renderCompSelect==='function') renderCompSelect();
-                  if(typeof syncBothPlaces==='function') syncBothPlaces();
-                  if(typeof render==='function') render();
-                }
               }
-              
-              // ALWAYS update heading from live payload - even if comps not fetched
-              let targetCur = window.competitions?.find(c=>c.id==window.currentId);
-              if(targetCur){
-                if(live.malsaram!==undefined) targetCur.malsaram = live.malsaram;
-                if(live.sthalam!==undefined) targetCur.sthalam = live.sthalam;
-                if(live.date!==undefined) targetCur.date = live.date;
-                try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-                if(typeof syncBothPlaces==='function') syncBothPlaces();
-                if(typeof renderCompSelect==='function') renderCompSelect();
-                // Update display div for public
-                let displayDiv = document.getElementById('publicMetaDisplay');
-                if(!displayDiv){
-                  displayDiv = document.createElement('div');
-                  displayDiv.id = 'publicMetaDisplay';
-                  displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff3e0;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;';
-                  let pr = document.querySelector('.pothu-row');
-                  if(pr && pr.parentNode) pr.parentNode.insertBefore(displayDiv, pr.nextSibling);
-                }
-                if(displayDiv){
-                  let t = `${live.malsaram||''} ${live.sthalam? '('+live.sthalam+')':''} ${live.date||''} - LIVE`.trim();
-                  if(t) { displayDiv.textContent = t; displayDiv.style.display='block'; }
-                }
-              }
+            }
+            // Update heading from live
+            let cur = window.competitions?.find(c=>c.id==window.currentId);
+            if(cur){
+              cur.malsaram = live.malsaram || cur.malsaram || '';
+              cur.sthalam = live.sthalam || cur.sthalam || '';
+              cur.date = live.date || cur.date || '';
+              try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+              window.loadHeadingIntoInputs();
+              if(typeof renderCompSelect==='function') renderCompSelect();
+              if(typeof syncBothPlaces==='function') syncBothPlaces();
             }
           }
         }
-      }catch(e){}
-      
-      // Fetch data (scores)
+      }
+      // Fetch scores
       try{
         let dataRes = await fetch(KVDB_DATA);
         if(dataRes.ok){
@@ -1878,23 +1936,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
           }
         }
       }catch(e){}
-    }catch(e){ console.log("pullLive error", e); }
+    }catch(e){}
   }
   
-  // Force push when heading inputs change
+  // 6. Attach input listeners
   document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=>{
       let mal = document.getElementById('malsaramInput');
       let sth = document.getElementById('sthalamInput');
       let dt = document.getElementById('dateInput');
-      function pushHeading(){
+      
+      function onInput(){
         if(typeof isAdminUnlocked==='function' && !isAdminUnlocked()) return;
-        setTimeout(()=>{ if(window.pushLive) window.pushLive(); }, 300);
+        window.saveHeadingEverywhere();
       }
-      if(mal){ mal.addEventListener('input', pushHeading); mal.addEventListener('change', pushHeading); }
-      if(sth){ sth.addEventListener('input', pushHeading); sth.addEventListener('change', pushHeading); }
-      if(dt){ dt.addEventListener('input', pushHeading); dt.addEventListener('change', pushHeading); }
-      console.log("Heading live fix installed - KVDB bucket:", BUCKET);
+      
+      if(mal){ mal.addEventListener('input', onInput); mal.addEventListener('change', onInput); mal.addEventListener('blur', onInput); }
+      if(sth){ sth.addEventListener('input', onInput); sth.addEventListener('change', onInput); sth.addEventListener('blur', onInput); }
+      if(dt){ dt.addEventListener('input', onInput); dt.addEventListener('change', onInput); dt.addEventListener('blur', onInput); }
+      
+      // Load heading on start
+      window.loadHeadingIntoInputs();
+      
+      // Interval for live sync
+      setInterval(()=>{
+        if(typeof isAdminUnlocked==='function'){
+          if(isAdminUnlocked()){
+            if(typeof pushLive==='function') pushLive();
+          } else {
+            if(typeof pullLive==='function') pullLive();
+          }
+        }
+      }, 2500);
+      
+      console.log("FINAL heading fix installed - save + live + persistent");
     }, 1000);
   });
 })();
