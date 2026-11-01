@@ -2122,4 +2122,123 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script>
+// FINAL FIX: Heading also live, no other changes
+(function(){
+  // 1. When new competition created, save heading to Firebase
+  let origCreate = window.createNewCompetition;
+  if(origCreate){
+    window.createNewCompetition = function(){
+      origCreate();
+      try{
+        // After original creates, currentId is new
+        let cur = competitions.find(c=>c.id==currentId);
+        if(cur && typeof db!=='undefined' && db){
+          // Save full competition with heading
+          db.ref('pothpoottu/live').set(cur);
+          // Save meta separately for heading display
+          db.ref('pothpoottu/meta').set({
+            malsaram: cur.malsaram || '',
+            sthalam: cur.sthalam || '',
+            date: cur.date || '',
+            timestamp: Date.now()
+          });
+          console.log("New competition heading saved to Firebase:", cur.malsaram, cur.sthalam, cur.date);
+        }
+      }catch(e){ console.log(e); }
+    }
+  }
+  
+  // 2. When admin types in heading inputs, save immediately to Firebase
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      let malInput = document.getElementById('malsaramInput');
+      let sthInput = document.getElementById('sthalamInput');
+      let dateInput = document.getElementById('dateInput');
+      
+      function saveHeadingToFirebase(){
+        try{
+          let mal = malInput?.value || '';
+          let sth = sthInput?.value || '';
+          let dt = dateInput?.value || '';
+          let cur = competitions.find(c=>c.id==currentId);
+          if(cur){
+            cur.malsaram = mal;
+            cur.sthalam = sth;
+            cur.date = dt;
+          }
+          if(typeof db!=='undefined' && db){
+            db.ref('pothpoottu/meta').set({
+              malsaram: mal,
+              sthalam: sth,
+              date: dt,
+              timestamp: Date.now()
+            });
+            if(cur){
+              db.ref('pothpoottu/live').set(cur);
+            }
+            console.log("Heading saved to Firebase:", mal, sth, dt);
+          }
+        }catch(e){}
+      }
+      
+      if(malInput) malInput.addEventListener('input', saveHeadingToFirebase);
+      if(sthInput) sthInput.addEventListener('input', saveHeadingToFirebase);
+      if(dateInput) dateInput.addEventListener('change', saveHeadingToFirebase);
+      if(dateInput) dateInput.addEventListener('input', saveHeadingToFirebase);
+    }, 1000);
+  });
+  
+  // 3. Public view - show heading from Firebase
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      try{
+        if(typeof db!=='undefined' && db){
+          // Listen to meta
+          db.ref('pothpoottu/meta').on('value', (snap)=>{
+            let meta = snap.val();
+            if(!meta) return;
+            // For both admin and public, update display
+            let displayDiv = document.getElementById('publicMetaDisplay');
+            if(!displayDiv){
+              displayDiv = document.createElement('div');
+              displayDiv.id = 'publicMetaDisplay';
+              displayDiv.style.cssText = 'text-align:center;padding:8px;background:#fff8e1;border:2px solid #b71c1c;border-radius:8px;margin:6px 0;font-weight:900;color:#b71c1c;font-size:16px;display:block;';
+              let pothuRow = document.querySelector('.pothu-row');
+              if(pothuRow && pothuRow.parentNode){
+                pothuRow.parentNode.insertBefore(displayDiv, pothuRow.nextSibling);
+              } else {
+                let hb = document.querySelector('.history-bar');
+                if(hb && hb.parentNode) hb.parentNode.insertBefore(displayDiv, hb);
+              }
+            }
+            let txt = '';
+            if(meta.malsaram) txt += meta.malsaram + ' ';
+            if(meta.sthalam) txt += '(' + meta.sthalam + ') ';
+            if(meta.date) txt += meta.date + ' ';
+            if(txt.trim()) txt += '- LIVE';
+            else txt = 'LIVE';
+            displayDiv.textContent = txt;
+            displayDiv.style.display = 'block';
+          });
+          
+          // Also listen to live for fallback
+          db.ref('pothpoottu/live').on('value', (snap)=>{
+            let val = snap.val();
+            if(!val || !val.malsaram) return;
+            // If meta listener hasn't fired, use live's meta
+            let displayDiv = document.getElementById('publicMetaDisplay');
+            if(displayDiv && !displayDiv.textContent.includes(val.malsaram)){
+              // Update if meta missing
+              if(!val.sthalam && !val.date) return;
+            }
+          });
+        }
+      }catch(e){}
+    }, 1500);
+  });
+})();
+</script>
+
 </body></html>
