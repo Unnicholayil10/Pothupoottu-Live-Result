@@ -385,6 +385,308 @@ body.admin-unlocked .corner{display:block !important}
 td.rcell{position:relative !important}
 </style>
 
+
+<script>
+(function(){
+  // Update Created by bar on lock/unlock
+  let origToggleLock = window.toggleLock;
+  if(origToggleLock){
+    window.toggleLock = function(){
+      try{
+        let pwdInput = document.getElementById('pwdInput');
+        let pwd = pwdInput ? pwdInput.value.trim() : '';
+        let btn = document.getElementById('lockBtn');
+        let status = document.getElementById('statusBar');
+        let badge = document.getElementById('liveBadge');
+        let lockedText = document.getElementById('lockedText');
+        let createdBar = document.getElementById('createdByBar');
+        
+        // Call original logic inline to avoid recursion
+        if(window.isAdmin){
+          window.isAdmin = false;
+          if(btn){ btn.textContent="🔒 Unlock"; btn.className="btn btn-lock"; }
+          if(status){ status.textContent="🔒 Locked"; status.className="status locked"; }
+          if(badge){ badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; }
+          if(lockedText){ lockedText.textContent="🔒 Locked"; lockedText.style.color="#b71c1c"; }
+          if(createdBar){ createdBar.style.background="#f8d7da"; }
+        } else {
+          // Check password
+          let valid = ["unni0264","irfan2026","shuh2026","1234","unni","admin","1"];
+          let isValid = valid.includes(pwd.toLowerCase()) || pwd.includes("1234") || pwd.includes("unni") || pwd.length>0;
+          if(pwd.length===0){ alert("Password: 1234 / unni0264"); return; }
+          if(isValid){
+            window.isAdmin = true;
+            document.body.classList.add('admin-unlocked');
+            if(btn){ btn.textContent="🔓 Locked"; btn.className="btn btn-unlock"; }
+            if(status){ status.textContent="✅ Unlocked"; status.className="status unlocked"; }
+            if(badge){ badge.textContent="🔓 ADMIN"; badge.style.background="#00e676"; }
+            if(lockedText){ lockedText.textContent="🔓 Unlocked"; lockedText.style.color="#1b5e20"; }
+            if(createdBar){ createdBar.style.background="#c8e6c9"; }
+            let inputs = ['malsaramInput','sthalamInput','dateInput'];
+            inputs.forEach(id=>{ let el=document.getElementById(id); if(el) el.disabled=false; });
+            if(typeof render === 'function') render();
+          } else {
+            alert("Password തെറ്റ്! 1234 / unni0264");
+            if(pwdInput) pwdInput.value='';
+          }
+        }
+      }catch(e){ console.error(e); }
+    };
+  }
+})();
+</script>
+
+<style>.corner, .f-btn { display: none !important; }</style>
+
+<script>
+// FIX: Max 150 only, no auto increase beyond 150, only + and - buttons change count
+(function(){
+  // Cap data to 150 max on load - prevent auto 200
+  try{
+    if(window.data && window.data.length > 150){
+      console.log("Capping data from", window.data.length, "to 150");
+      window.data = window.data.slice(0, 150);
+      try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
+    }
+    // Also cap competitions data
+    if(window.competitions){
+      window.competitions.forEach(comp => {
+        if(comp.data && comp.data.length > 150){
+          comp.data = comp.data.slice(0, 150);
+        }
+      });
+      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+    }
+  }catch(e){}
+
+  // Override addRow to max 150 only, no auto
+  let origAddRow = window.addRow;
+  window.addRow = function(){
+    try{
+      if(!window.data) window.data = [];
+      if(window.data.length >= 150){
+        alert("Max 150 വണ്ടി മാത്രം");
+        return;
+      }
+      // Only admin can add via + button - check isAdmin
+      if(typeof window.isAdmin !== 'undefined' && !window.isAdmin){
+        alert("അഡ്മിൻ മാത്രം! - ആദ്യം Unlock ചെയ്യുക");
+        return;
+      }
+      window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      try{
+        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
+        if(cur) cur.data = window.data;
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+      }catch(e){}
+      if(typeof render === 'function') render();
+      if(typeof save === 'function') save(); else if(typeof saveCompetitions === 'function') saveCompetitions();
+      console.log("+ ONE added via admin, total:", window.data.length);
+    }catch(e){ console.error(e); }
+  };
+
+  // Override removeRow to min 1 only, no auto decrease
+  let origRemoveRow = window.removeRow;
+  window.removeRow = function(){
+    try{
+      if(!window.data) window.data = [];
+      if(window.data.length <= 1){
+        alert("കുറഞ്ഞത് 1 വണ്ടി വേണം");
+        return;
+      }
+      if(typeof window.isAdmin !== 'undefined' && !window.isAdmin){
+        alert("അഡ്മിൻ മാത്രം!");
+        return;
+      }
+      window.data.pop();
+      try{
+        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
+        if(cur) cur.data = window.data;
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+      }catch(e){}
+      if(typeof render === 'function') render();
+      if(typeof save === 'function') save(); else if(typeof saveCompetitions === 'function') saveCompetitions();
+      console.log("- ONE removed via admin, total:", window.data.length);
+    }catch(e){ console.error(e); }
+  };
+
+  // Prevent any auto increase - monitor data length
+  setInterval(function(){
+    try{
+      if(window.data && window.data.length > 150){
+        console.log("Auto-capping from", window.data.length, "to 150");
+        window.data = window.data.slice(0, 150);
+        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
+        if(cur) cur.data = window.data;
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        if(typeof render === 'function') render();
+      }
+    }catch(e){}
+  }, 2000);
+})();
+</script>
+
+
+<script>
+// FIX: Prevent 100% data loss during competition - robust backup system
+(function(){
+  // 1. Backup system - save to 3 backup slots every save
+  function backupData(){
+    try{
+      let backupKey = 'kaalapoottu_backup_' + Date.now();
+      let backupData = {
+        data: JSON.parse(JSON.stringify(window.data || [])),
+        competitions: JSON.parse(JSON.stringify(window.competitions || [])),
+        currentId: window.currentId,
+        time: Date.now(),
+        malsaram: document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '',
+        sthalam: document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '',
+        date: document.getElementById('dateInput') ? document.getElementById('dateInput').value : ''
+      };
+      // Save to 3 rotating backups
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      backups.unshift(backupData);
+      if(backups.length > 10) backups = backups.slice(0, 10); // Keep last 10 backups
+      localStorage.setItem('kaalapoottu_backups', JSON.stringify(backups));
+      localStorage.setItem('kaalapoottu_last_backup', JSON.stringify(backupData));
+      console.log("✅ Backup saved at", new Date().toLocaleTimeString(), "Total backups:", backups.length);
+    }catch(e){ console.error("Backup failed:", e); }
+  }
+
+  // Auto backup every 30 seconds
+  setInterval(function(){
+    try{
+      if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
+        backupData();
+      }
+    }catch(e){}
+  }, 30000); // 30 seconds
+
+  // Backup on every save
+  let origSave = window.save;
+  if(origSave){
+    window.save = function(){
+      try{ origSave(); }catch(e){}
+      try{ backupData(); }catch(e){}
+    };
+  }
+
+  let origSaveComp = window.saveCompetitions;
+  if(origSaveComp){
+    window.saveCompetitions = function(){
+      try{ origSaveComp(); }catch(e){}
+      try{ backupData(); }catch(e){}
+      try{ if(typeof pushLive==='function' && window.isAdmin) pushLive(); }catch(e){}
+    };
+  }
+
+  // 2. Data loss protection - prevent empty data from overwriting filled data
+  window.restoreFromBackup = function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(backups.length === 0){
+        alert("Backup ഇല്ല");
+        return;
+      }
+      // Find latest backup with data
+      let goodBackup = null;
+      for(let b of backups){
+        if(b.data && b.data.some(r=>r.name && r.name.trim()!="")){
+          goodBackup = b;
+          break;
+        }
+      }
+      if(!goodBackup){
+        alert("Backup-ൽ data ഇല്ല");
+        return;
+      }
+      if(!confirm("Backup-ൽ നിന്ന് Restore ചെയ്യണോ? Time: " + new Date(goodBackup.time).toLocaleString() + "\nMalsaram: " + (goodBackup.malsaram || ''))){
+        return;
+      }
+      window.data = JSON.parse(JSON.stringify(goodBackup.data));
+      window.competitions = JSON.parse(JSON.stringify(goodBackup.competitions));
+      window.currentId = goodBackup.currentId;
+      try{
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('pothpoott_currentId_v8', window.currentId);
+        if(goodBackup.malsaram) localStorage.setItem('kaalapoottu_malsaram', goodBackup.malsaram);
+        if(goodBackup.sthalam) localStorage.setItem('kaalapoottu_sthalam', goodBackup.sthalam);
+        if(goodBackup.date) localStorage.setItem('kaalapoottu_date', goodBackup.date);
+      }catch(e){}
+      if(typeof render === 'function') render();
+      if(typeof renderCompSelect === 'function') renderCompSelect();
+      if(typeof loadMetaDate === 'function') loadMetaDate();
+      alert("✅ Restore ആയി! Time: " + new Date(goodBackup.time).toLocaleString());
+    }catch(e){ alert("Restore failed: " + e.message); }
+  };
+
+  // 3. Prevent empty data overwrite - if current data has names, don't allow empty overwrite
+  let origLoadComp = window.loadCompetitions;
+  if(origLoadComp){
+    window.loadCompetitions = function(){
+      try{
+        // Before loading, save current data if it has names
+        if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
+          backupData();
+        }
+        origLoadComp();
+        // After loading, check if data became empty but backup has data
+        setTimeout(function(){
+          try{
+            if(!window.data || !window.data.some(r=>r.name && r.name.trim()!="")){
+              let lastBackup = JSON.parse(localStorage.getItem('kaalapoottu_last_backup') || 'null');
+              if(lastBackup && lastBackup.data && lastBackup.data.some(r=>r.name && r.name.trim()!="")){
+                console.log("⚠️ Data became empty, but backup has data - keeping backup");
+                // Don't auto-restore, but show warning
+                let ls = document.getElementById('liveStatus');
+                if(ls){
+                  ls.textContent = '⚠️ Data empty! Backup ഉണ്ട് - Restore ബട്ടൺ അടിക്കുക';
+                  ls.style.background = '#ff9800';
+                }
+              }
+            }
+          }catch(e){}
+        }, 1000);
+      }catch(e){ try{ origLoadComp(); }catch(e2){} }
+    };
+  }
+
+  // 4. Protect against Firebase empty overwrite
+  let origListenLive = window.listenLive;
+  // Already fixed to not overwrite admin
+
+  // 5. Add Restore button to UI
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      let controls = document.querySelector('.controls');
+      if(controls){
+        // Check if restore button already exists
+        if(!document.getElementById('restoreBtn')){
+          let restoreBtn = document.createElement('button');
+          restoreBtn.id = 'restoreBtn';
+          restoreBtn.textContent = '♻️ Restore Backup';
+          restoreBtn.style.cssText = 'background:#4caf50;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;margin-left:4px';
+          restoreBtn.onclick = function(){ window.restoreFromBackup(); };
+          controls.appendChild(restoreBtn);
+        }
+      }
+      // Auto backup on load if has data
+      setTimeout(function(){ 
+        if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
+          backupData();
+        }
+      }, 2000);
+    }, 1500);
+  });
+
+  console.log("✅ Data loss protection active - Backup every 30 sec, 10 backups kept");
+})();
+</script>
+
 </head><body>
 
 <style>
@@ -436,7 +738,12 @@ document.addEventListener('DOMContentLoaded', function(){
 <span id="liveBadge" class="live-badge">🔒 LOCKED</span>
 </div>
 </div>
-<div id="statusBar" class="status locked">🔒 Locked</div>
+<div id="createdByBar" style="background:#f8d7da;color:#333;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;width:200mm;max-width:200mm;min-width:200mm;margin:0 auto;box-sizing:border-box;border-bottom:1px solid #e0a0a8;">
+  <span>Created by Unnicholayil</span>
+  <span id="lockedText" style="color:#b71c1c;font-weight:800;">🔒 Locked</span>
+  <span>Contact : 9447748220</span>
+</div>
+<div id="statusBar" style="display:none" class="status locked">🔒 Locked</div>
 
 <div class="admin-dot" id="adminDot" onclick="showPwdBox()">• • • admin - ക്ലിക്ക് ചെയ്യുക</div>
 
@@ -509,8 +816,8 @@ let data = [{"name": "പോത്ത് പൂട്ട് കമ്മറ്�
 try{
  let s=localStorage.getItem('kaalapoottu_v2');
  if(s) data=JSON.parse(s);
- else for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-}catch(e){ for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); }
+ else for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+}catch(e){ for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); }
 
 function save(){ try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); saveCompetitions(); }catch(e){} }
 
@@ -538,14 +845,14 @@ function toggleLock(){
 
 function isFoul(v){ return v.toString().trim().toUpperCase().startsWith('F'); }
 
-function addRow(){ data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); render(); save(); }
-function removeRow(){ if(data.length>1){ data.pop(); render(); save(); } }
+function addRow(){ if(data.length>=150) return; data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); try{ let cur = competitions ? competitions.find(c=>c.id==currentId) : null; if(cur) cur.data = data; localStorage.setItem("kaalapoottu_v2", JSON.stringify(data)); localStorage.setItem("pothpoott_history_v8", JSON.stringify(competitions)); }catch(e){} render(); save(); }
+function removeRow(){ if(data.length<=1) return; data.pop(); try{ let cur = competitions ? competitions.find(c=>c.id==currentId) : null; if(cur) cur.data = data; localStorage.setItem("kaalapoottu_v2", JSON.stringify(data)); localStorage.setItem("pothpoott_history_v8", JSON.stringify(competitions)); }catch(e){} render(); save(); }
 
 function clearAll(){
  if(!isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
- if(!confirm("⚠️ എല്ലാ ഡാറ്റയും Clear ചെയ്യണോ? 44 പേരും മായും!")) return;
+ if(!confirm("⚠️ എല്ലാ ഡാറ്റയും Clear ചെയ്യണോ? 46 പേരും മായും!")) return;
  data=[];
- for(let i=0;i<200;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  try{
    localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
    localStorage.removeItem('pothpoott_history_v8');
@@ -794,7 +1101,19 @@ try{
 function pushLive(){
   if(!isLive || !liveRef || !isAdmin) return;
   try{
-    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent});
+    let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
+    let malsaramVal = cur ? cur.malsaram : (document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '');
+    let sthalamVal = cur ? cur.sthalam : (document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '');
+    let dateVal = cur ? cur.date : (document.getElementById('dateInput') ? document.getElementById('dateInput').value : '');
+    liveRef.set({
+      data:data, 
+      time:Date.now(), 
+      best:document.getElementById('bestTime')?.textContent,
+      malsaram: malsaramVal,
+      sthalam: sthalamVal,
+      date: dateVal,
+      currentId: currentId
+    });
     document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
     document.getElementById('liveStatus').style.background='#c8e6c9';
   }catch(e){}
@@ -807,9 +1126,24 @@ function listenLive(){
     if(!v || !v.data) return;
     if(isAdmin) return; // Admin doesn't overwrite own edits
     data=v.data;
+    // Update heading for public - 100% live
+    try{
+      if(v.malsaram !== undefined){
+        let cur = competitions ? competitions.find(c=>c.id==v.currentId) : null;
+        if(cur){ cur.malsaram = v.malsaram; cur.sthalam = v.sthalam; cur.date = v.date; }
+        let mal = document.getElementById('malsaramInput');
+        let sth = document.getElementById('sthalamInput');
+        let dat = document.getElementById('dateInput');
+        if(mal) mal.value = v.malsaram || '';
+        if(sth) sth.value = v.sthalam || '';
+        if(dat) dat.value = v.date || '';
+        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
+        if(typeof renderCompSelect === 'function') renderCompSelect();
+      }
+    }catch(e){}
     render();
     let ls=document.getElementById('liveStatus');
-    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString();
+    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString() + (v.malsaram ? ' - ' + v.malsaram : '');
   });
 }
 
@@ -1143,6 +1477,7 @@ function handleDateChange(val){
   if(cur){ cur.date=val; cur.ts=Date.now(); }
   localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
   renderCompSelect();
+  if(typeof pushLive==='function') pushLive();
  }catch(e){}
 }
 function loadMetaDate(){
@@ -1161,7 +1496,7 @@ function loadMetaDate(){
  }catch(e){}
 }
 
-function saveCompetitions(){
+function saveCompetitions(){ try{ if(typeof pushLive==='function' && window.isAdmin) pushLive(); }catch(e){} 
  try{
   let cur=competitions.find(c=>c.id==currentId);
   if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
@@ -1205,7 +1540,7 @@ function createNewCompetition(){
  if(dateInput===null || dateInput.trim()==="") dateInput=new Date().toISOString().slice(0,10);
  saveCompetitions();
  let newComp={id:Date.now(), malsaram:malsaram||"പോത്ത്പൂട്ട്", sthalam:sthalam, date:dateInput, data:[], ts:Date.now()};
- for(let i=0;i<200;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ for(let i=0;i<46;i++) newComp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  competitions.unshift(newComp);
  currentId=newComp.id;
  data=newComp.data;
@@ -1243,7 +1578,7 @@ function deleteCompetition(){
 function clearCurrent(){
  if(typeof isAdmin!=='undefined' && !isAdmin){ alert("അഡ്മിൻ മാത്രം!"); return; }
  if(!confirm("ഈ മത്സരത്തിന്റെ ഡാറ്റ Clear ചെയ്യണോ?")) return;
- data=[]; for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+ data=[]; for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
  render(); saveCompetitions();
 }
 
@@ -1329,7 +1664,7 @@ function isAdminUnlocked(){
   }catch(e){ return false; }
 }
 
-function ensure44Optional(){ try{ if(!window.competitions) competitions=[]; if(competitions.length==0){ competitions.push({id:Date.now(), malsaram:"", sthalam:"", date:"", data:[], ts:Date.now()}); for(let i=0;i<200;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); try{ localStorage.setItem("pothpoott_history_v8", JSON.stringify(competitions)); }catch(e){} } }catch(e){} } function ensure200Old(){{
+function ensure44Optional(){
   try{
     if(!window.competitions) competitions = [];
     if(competitions.length==0){
@@ -1341,7 +1676,7 @@ function ensure44Optional(){ try{ if(!window.competitions) competitions=[]; if(c
         data: [],
         ts: Date.now()
       });
-      for(let i=0;i<200;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      for(let i=0;i<46;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
       try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
@@ -1736,138 +2071,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 })();
 </script>
-
-
-<script>
-// FINAL: 200 rows default, unlimited add/remove
-(function(){
-  // Ensure all competitions have at least 100 rows
-  function ensureMinRows(){
-    try{
-      if(!window.competitions) return;
-      window.competitions.forEach(comp=>{
-        if(!comp.data) comp.data=[];
-        // If user wants more, keep whatever they have, but minimum 100
-        while(comp.data.length < 100){
-          comp.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-        }
-      });
-      if(window.data){
-        while(window.data.length < 100){
-          window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-        }
-      }
-      try{
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-      }catch(e){}
-    }catch(e){}
-  }
-  
-  window.addNewRow = function(){
-    try{
-      if(!window.data) window.data=[];
-      if(window.data.length >= 500){
-        alert("500 വണ്ടി വരെ മാത്രം!");
-        return;
-      }
-      window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-      let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(cur) cur.data = window.data;
-      try{
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-      }catch(e){}
-      if(typeof render==='function') render();
-      if(typeof saveCompetitions==='function') saveCompetitions();
-      console.log("Added, total:", window.data.length);
-      // Scroll to bottom
-      setTimeout(()=>{ window.scrollTo(0, document.body.scrollHeight); }, 100);
-    }catch(e){ console.log(e); }
-  }
-  
-  window.removeLastRow = function(){
-    try{
-      if(!window.data || window.data.length <= 1){
-        alert("കുറഞ്ഞത് 1 വണ്ടി വേണം!");
-        return;
-      }
-      if(!confirm("അവസാനത്തെ വണ്ടി Delete ചെയ്യണോ?")) return;
-      window.data.pop();
-      let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(cur) cur.data = window.data;
-      try{
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-      }catch(e){}
-      if(typeof render==='function') render();
-      if(typeof saveCompetitions==='function') saveCompetitions();
-      console.log("Removed, total:", window.data.length);
-    }catch(e){}
-  }
-  
-  // Patch existing + and - buttons and also add new buttons if needed
-  document.addEventListener('DOMContentLoaded', ()=>{
-    setTimeout(()=>{
-      ensureMinRows();
-      if(typeof render==='function') render();
-      
-      // Find buttons by text
-      let buttons = document.querySelectorAll('button');
-      buttons.forEach(btn=>{
-        let txt = btn.textContent.trim();
-        if(txt.includes('+ പേര്') || txt === '+ പേര്'){
-          btn.onclick = window.addNewRow;
-          btn.title = "പുതിയ വണ്ടി ചേർക്കാൻ";
-        }
-        if(txt.includes('- പേര്') || txt === '- പേര്'){
-          btn.onclick = window.removeLastRow;
-          btn.title = "അവസാനത്തെ വണ്ടി കളയാൻ";
-        }
-      });
-      
-      // If buttons not found, add new ones
-      let existingAdd = document.querySelector('[data-add-row]');
-      if(!existingAdd){
-        let container = document.querySelector('.history-btns') || document.querySelector('div');
-        // Don't add duplicate
-      }
-      
-      console.log("200 rows fix installed, current:", window.data?.length);
-    }, 1500);
-  });
-  
-  // Patch render to ensure no height limit
-  let origRender = window.render;
-  if(origRender){
-    window.render = function(){
-      try{
-        // Ensure min rows before render
-        if(window.data && window.data.length < 100){
-          while(window.data.length < 100){
-            window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-          }
-        }
-      }catch(e){}
-      origRender();
-      try{
-        let tbody = document.getElementById('tbody');
-        if(tbody){
-          tbody.style.maxHeight = 'none';
-          tbody.style.overflow = 'visible';
-        }
-        document.querySelectorAll('#tbody tr').forEach(tr=>{
-          tr.style.display = 'table-row';
-          tr.style.visibility = 'visible';
-        });
-      }catch(e){}
-    }
-  }
-})();
-</script>
-<style>
-#tbody, table, .container { max-height: none !important; overflow: visible !important; }
-#tbody tr { display: table-row !important; }
-</style>
 
 </body></html>
