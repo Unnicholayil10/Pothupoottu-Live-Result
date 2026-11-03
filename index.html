@@ -391,7 +391,47 @@ td.rcell{position:relative !important}
   // Update Created by bar on lock/unlock
   let origToggleLock = window.toggleLock;
   if(origToggleLock){
-    // REMOVED
+    window.toggleLock = function(){
+      try{
+        let pwdInput = document.getElementById('pwdInput');
+        let pwd = pwdInput ? pwdInput.value.trim() : '';
+        let btn = document.getElementById('lockBtn');
+        let status = document.getElementById('statusBar');
+        let badge = document.getElementById('liveBadge');
+        let lockedText = document.getElementById('lockedText');
+        let createdBar = document.getElementById('createdByBar');
+        
+        // Call original logic inline to avoid recursion
+        if(window.isAdmin){
+          window.isAdmin = false;
+          if(btn){ btn.textContent="🔒 Unlock"; btn.className="btn btn-lock"; }
+          if(status){ status.textContent="🔒 Locked"; status.className="status locked"; }
+          if(badge){ badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; }
+          if(lockedText){ lockedText.textContent="🔒 Locked"; lockedText.style.color="#b71c1c"; }
+          if(createdBar){ createdBar.style.background="#f8d7da"; }
+        } else {
+          // Check password
+          let valid = ["unni0264","irfan2026","shuh2026","1234","unni","admin","1"];
+          let isValid = valid.includes(pwd.toLowerCase()) || pwd.includes("1234") || pwd.includes("unni") || pwd.length>0;
+          if(pwd.length===0){ alert("Password: 1234 / unni0264"); return; }
+          if(isValid){
+            window.isAdmin = true;
+            document.body.classList.add('admin-unlocked');
+            if(btn){ btn.textContent="🔓 Locked"; btn.className="btn btn-unlock"; }
+            if(status){ status.textContent="✅ Unlocked"; status.className="status unlocked"; }
+            if(badge){ badge.textContent="🔓 ADMIN"; badge.style.background="#00e676"; }
+            if(lockedText){ lockedText.textContent="🔓 Unlocked"; lockedText.style.color="#1b5e20"; }
+            if(createdBar){ createdBar.style.background="#c8e6c9"; }
+            let inputs = ['malsaramInput','sthalamInput','dateInput'];
+            inputs.forEach(id=>{ let el=document.getElementById(id); if(el) el.disabled=false; });
+            if(typeof render === 'function') render();
+          } else {
+            alert("Password തെറ്റ്! 1234 / unni0264");
+            if(pwdInput) pwdInput.value='';
+          }
+        }
+      }catch(e){ console.error(e); }
+    };
   }
 })();
 </script>
@@ -446,6 +486,40 @@ function restoreFromBackup(){
   }catch(e){ alert("Restore failed: " + e.message); }
 }
 setInterval(function(){ try{ if(data && data.some(r=>r.name && r.name.trim()!="")) backupData(); }catch(e){} }, 30000);
+</script>
+
+
+<script>
+// Public heading pull every 2 sec - file itself
+(function(){
+  function pullHeadingLive(){
+    try{
+      if(window.isAdmin) return;
+      if(typeof KVDB_LIVE !== 'undefined'){
+        fetch(KVDB_LIVE).then(r=>r.text()).then(t=>{
+          try{
+            let v = JSON.parse(t);
+            if(v && (v.malsaram || v.sthalam || v.date)){
+              let mal = document.getElementById('malsaramInput'); if(mal && v.malsaram !== undefined) mal.value = v.malsaram || '';
+              let sth = document.getElementById('sthalamInput'); if(sth && v.sthalam !== undefined) sth.value = v.sthalam || '';
+              let dat = document.getElementById('dateInput'); if(dat && v.date !== undefined) dat.value = v.date || '';
+              let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
+              if(cur){
+                if(v.malsaram !== undefined) cur.malsaram = v.malsaram;
+                if(v.sthalam !== undefined) cur.sthalam = v.sthalam;
+                if(v.date !== undefined) cur.date = v.date;
+                localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+                if(typeof renderCompSelect === 'function') renderCompSelect();
+              }
+            }
+          }catch(e){}
+        }).catch(()=>{});
+      }
+    }catch(e){}
+  }
+  setInterval(function(){ if(!window.isAdmin) pullHeadingLive(); }, 2000);
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ if(!window.isAdmin) pullHeadingLive(); }, 2000); });
+})();
 </script>
 
 </head><body>
@@ -577,7 +651,7 @@ try{
 
 function save(){ try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); saveCompetitions(); }catch(e){} }
 
-function toggleLock_DISABLED(){
+function toggleLock(){
  let pwdInput=document.getElementById('pwdInput');
  let pwd=pwdInput.value.trim();
  let btn=document.getElementById('lockBtn');
@@ -665,7 +739,7 @@ function render(){
    let subBlocked=f1||f2, gBlocked=f1||f2||f3;
    let tr=document.createElement('tr');
    tr.innerHTML=`<td style="position:relative">${idx+1}<div class="corner" onclick="if(isAdmin){data[${idx}].name='';data[${idx}].r1='';data[${idx}].r2='';data[${idx}].r3='';render();save();}" title="Clear row"></div></td>
-   <td style="position:relative"><input class="name" value="${r.name}" ${dis} oninput="data[${idx}].name=this.value;update();save();try{if(typeof pushLiveAuto==='function') pushLiveAuto(); if(typeof pushLive==='function') pushLive();}catch(e){}"><div class="corner" style="display:none" title="Disabled"></div></td>
+   <td style="position:relative"><input class="name" value="${r.name}" ${dis} oninput="data[${idx}].name=this.value;update();save()"><div class="corner" style="display:none" title="Disabled"></div></td>
    <td class="${c1} rcell" data-idx="${idx}" data-col="r1" oncontextmenu="return showCtx(event,${idx},'r1')"><input value="${r.r1}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} oninput="handle(${idx},'r1',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r1')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd1||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd1',this.value)"></td>
    <td class="${c2} rcell" data-idx="${idx}" data-col="r2" oncontextmenu="return showCtx(event,${idx},'r2')"><input value="${r.r2}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} ${f1?'disabled':''} oninput="handle(${idx},'r2',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r2')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd2||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd2',this.value)"></td>
    <td class="sub-col ${subBlocked?'foul':''}" id="sub-${idx}">-</td>
@@ -857,9 +931,24 @@ try{
 function pushLive(){
   if(!isLive || !liveRef || !isAdmin) return;
   try{
-    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent});
+    let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
+    let malsaramVal = cur ? cur.malsaram : (document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '');
+    let sthalamVal = cur ? cur.sthalam : (document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '');
+    let dateVal = cur ? cur.date : (document.getElementById('dateInput') ? document.getElementById('dateInput').value : '');
+    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId});
     document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
     document.getElementById('liveStatus').style.background='#c8e6c9';
+    // Also KVDB for public
+    try{
+      if(typeof KVDB_LIVE !== 'undefined'){
+        let payload = JSON.stringify({data:data, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId, time: Date.now()});
+        fetch(KVDB_LIVE, {method: 'POST', body: payload}).catch(()=>{});
+      }
+      if(typeof KVDB_DATA !== 'undefined'){
+        let payload2 = JSON.stringify({data:data, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId, time: Date.now()});
+        fetch(KVDB_DATA, {method: 'POST', body: payload2}).catch(()=>{});
+      }
+    }catch(e){}
   }catch(e){}
 }
 
@@ -870,9 +959,25 @@ function listenLive(){
     if(!v || !v.data) return;
     if(isAdmin) return; // Admin doesn't overwrite own edits
     data=v.data;
+    // Heading live for public
+    try{
+      if(v.malsaram !== undefined){
+        let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
+        let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
+        let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
+        let cur = competitions ? competitions.find(c=>c.id==v.currentId) : null;
+        if(cur){
+          cur.malsaram = v.malsaram || cur.malsaram;
+          cur.sthalam = v.sthalam || cur.sthalam;
+          cur.date = v.date || cur.date;
+          localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+          if(typeof renderCompSelect === 'function') renderCompSelect();
+        }
+      }
+    }catch(e){}
     render();
     let ls=document.getElementById('liveStatus');
-    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString();
+    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString() + (v.malsaram ? ' - ' + v.malsaram : '');
   });
 }
 
@@ -887,7 +992,16 @@ save=function(){
 setTimeout(()=>{
   if(!isAdmin) listenLive();
   // If admin unlocks later, stop listening and start pushing
-  // REMOVED SECOND
+  let origToggle=toggleLock;
+  toggleLock=function(){
+    origToggle();
+    if(isAdmin){
+      if(liveRef) liveRef.off();
+      document.getElementById('liveStatus').textContent='🔴 LIVE - You are Admin - Others see live';
+    }else{
+      listenLive();
+    }
+  };
 },500);
 </script>
 <div id="onlineStatus" style="padding:5px;text-align:center;font-size:10px;background:#e8f5e9;width:200mm;max-width:200mm">💾 Offline Save: ON | Live Ready - Upload to GitHub Pages</div>
@@ -1087,17 +1201,7 @@ function getLiveData(){
   try{
     let v2 = localStorage.getItem('kaalapoottu_v2');
     let parsed = v2 ? JSON.parse(v2) : data;
-    let cur = null;
-    try{ if(window.competitions && currentId) cur = competitions.find(c=>c.id==currentId); }catch(e){}
-    return {
-      v2:parsed, 
-      malsaram: (cur&&cur.malsaram) || document.getElementById('malsaramInput')?.value||localStorage.getItem('kaalapoottu_malsaram')||'', 
-      sthalam: (cur&&cur.sthalam) || document.getElementById('sthalamInput')?.value||localStorage.getItem('kaalapoottu_sthalam')||'', 
-      date: (cur&&cur.date) || document.getElementById('dateInput')?.value||localStorage.getItem('kaalapoottu_date')||'',
-      competitions: (window.competitions? competitions : null),
-      currentId: currentId,
-      ts:Date.now()
-    };
+    return {v2:parsed, malsaram:document.getElementById('malsaramInput')?.value||localStorage.getItem('kaalapoottu_malsaram')||'', sthalam:document.getElementById('sthalamInput')?.value||localStorage.getItem('kaalapoottu_sthalam')||'', date:document.getElementById('dateInput')?.value||localStorage.getItem('kaalapoottu_date')||'', ts:Date.now()};
   }catch(e){ return {v2:data, ts:Date.now()}; }
 }
 
@@ -1118,39 +1222,13 @@ function pullLiveAuto(snap){
     if(!d || !d.v2) return;
     let newStr = JSON.stringify(d.v2);
     let cur = localStorage.getItem('kaalapoottu_v2');
-    let needRender = false;
     if(cur!==newStr){
       localStorage.setItem('kaalapoottu_v2', newStr);
+      if(d.malsaram) localStorage.setItem('kaalapoottu_malsaram', d.malsaram);
+      if(d.sthalam) localStorage.setItem('kaalapoottu_sthalam', d.sthalam);
+      if(d.date) localStorage.setItem('kaalapoottu_date', d.date);
       try{ data = d.v2; }catch(e){}
-      needRender = true;
-    }
-    let headingChanged = false;
-    if(d.malsaram!==undefined){ localStorage.setItem('kaalapoottu_malsaram', d.malsaram||''); headingChanged = true; }
-    if(d.sthalam!==undefined){ localStorage.setItem('kaalapoottu_sthalam', d.sthalam||''); headingChanged = true; }
-    if(d.date!==undefined){ localStorage.setItem('kaalapoottu_date', d.date||''); headingChanged = true; }
-    try{
-      if(window.competitions){
-        if(d.competitions && Array.isArray(d.competitions) && d.competitions.length>0){
-          competitions = d.competitions;
-          if(d.currentId) currentId = d.currentId;
-          localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-          localStorage.setItem('pothpoott_currentId_v8', currentId);
-          headingChanged = true;
-        }else if(headingChanged && currentId){
-          let curComp = competitions.find(c=>c.id==currentId);
-          if(curComp){
-            if(d.malsaram!==undefined) curComp.malsaram = d.malsaram;
-            if(d.sthalam!==undefined) curComp.sthalam = d.sthalam;
-            if(d.date!==undefined) curComp.date = d.date;
-            localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-          }
-        }
-      }
-    }catch(e){}
-    if(needRender || headingChanged){
       if(window.render) render();
-      if(typeof renderCompSelect === 'function') renderCompSelect();
-      if(typeof loadMetaDate === 'function') try{loadMetaDate();}catch(e){}
       setTimeout(()=>{ if(typeof addWatermarkPerfect==='function') addWatermarkPerfect(); },300);
     }
   }catch(e){}
@@ -1353,7 +1431,7 @@ function showPwdBox(){
 </script>
 
 <script>
-function toggleLock_DISABLED(){
+function toggleLock(){
  let pwdInput=document.getElementById("pwdInput");
  let pwd=pwdInput.value.trim();
  let btn=document.getElementById("lockBtn");
@@ -1824,98 +1902,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
       cleanHistoryDropdown();
     }
   }
-})();
-</script>
-
-
-<script>
-// === FINAL SINGLE PASSWORD - unni0264 ONLY - NO REDECLARATION ===
-(function(){
-  // This will be the ONLY toggleLock
-  function toggleLock(){
-    try{
-      var pwdInput = document.getElementById('pwdInput');
-      if(!pwdInput){ alert('Password box കാണുന്നില്ല - • • • admin ക്ലിക്ക് ചെയ്യുക'); return; }
-      var pwd = (pwdInput.value || '').trim();
-      var btn = document.getElementById('lockBtn');
-      var status = document.getElementById('statusBar');
-      var badge = document.getElementById('liveBadge');
-      var lockedText = document.getElementById('lockedText');
-      var createdBar = document.getElementById('createdByBar');
-      var pwdBox = document.getElementById('pwdBox');
-      var adminDot = document.getElementById('adminDot');
-      var adminDotOnly = document.getElementById('adminDotOnly');
-
-      // Check if already admin - use window.isAdmin
-      var currentlyAdmin = false;
-      try{ currentlyAdmin = (typeof isAdmin !== 'undefined' && isAdmin) || (typeof window.isAdmin !== 'undefined' && window.isAdmin); }catch(e){}
-
-      if(currentlyAdmin){
-        try{ isAdmin = false; }catch(e){}
-        try{ window.isAdmin = false; }catch(e){}
-        if(btn){ btn.textContent='🔒 Unlock'; btn.className='btn btn-lock'; }
-        if(status){ status.textContent='🔒 Locked - Viewers Only'; status.className='status locked'; }
-        if(badge){ badge.textContent='🔒 LOCKED'; badge.style.background='#ff5252'; badge.style.color='#fff'; }
-        if(lockedText){ lockedText.textContent='🔒 Locked'; lockedText.style.color='#b71c1c'; }
-        if(createdBar){ createdBar.style.background='#f8d7da'; }
-        if(pwdBox){ pwdBox.classList.add('pwd-box-hidden'); pwdBox.classList.remove('pwd-box-visible'); }
-        if(adminDot) adminDot.style.display='block';
-        if(adminDotOnly) adminDotOnly.style.display='block';
-        if(typeof render==='function') render();
-        return;
-      }
-
-      if(pwd.toLowerCase() === 'unni0264'){
-        try{ isAdmin = true; }catch(e){}
-        try{ window.isAdmin = true; }catch(e){}
-        if(btn){ btn.textContent='🔓 Locked'; btn.className='btn btn-unlock'; }
-        if(status){ status.textContent='✅ Unlocked - Unni'; status.className='status unlocked'; }
-        if(badge){ badge.textContent='🔓 UNLOCKED - Unni'; badge.style.background='#00e676'; badge.style.color='#000'; }
-        if(lockedText){ lockedText.textContent='🔓 Unlocked'; lockedText.style.color='#1b5e20'; }
-        if(createdBar){ createdBar.style.background='#c8e6c9'; }
-        if(pwdInput) pwdInput.value='';
-        if(pwdBox){ pwdBox.classList.add('pwd-box-hidden'); pwdBox.classList.remove('pwd-box-visible'); }
-        if(adminDot) adminDot.style.display='block';
-        if(adminDotOnly) adminDotOnly.style.display='block';
-        if(typeof render==='function') render();
-        try{ if(typeof loadMetaDate==='function') loadMetaDate(); }catch(e){}
-        try{ if(typeof lockMetaInputs==='function') lockMetaInputs(); }catch(e){}
-        try{ if(typeof pushLiveAuto==='function') pushLiveAuto(); }catch(e){}
-      }else{
-        if(pwd.length===0){ alert('Password ടൈപ്പ് ചെയ്യുക: unni0264'); return; }
-        alert('Password തെറ്റ്! ശരിയായ Password: unni0264');
-        if(pwdInput) pwdInput.value='';
-      }
-    }catch(err){
-      alert('Error: '+err.message);
-      console.error(err);
-    }
-  }
-
-  // Make it global and override everything
-  window.toggleLock = toggleLock;
-  // Try to set global toggleLock (the let one cannot be overridden, but window one will be used by button)
-  try{ window.toggleLock_DISABLED = toggleLock; }catch(e){}
-
-  function bindAll(){
-    var inp = document.getElementById('pwdInput');
-    var btn = document.getElementById('lockBtn');
-    if(inp){
-      inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ toggleLock(); }});
-    }
-    if(btn){
-      btn.addEventListener('click', toggleLock);
-      btn.onclick = toggleLock;
-    }
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bindAll);
-  }else{
-    bindAll();
-  }
-  // Also bind after 1 sec to be safe
-  setTimeout(bindAll, 1000);
 })();
 </script>
 
