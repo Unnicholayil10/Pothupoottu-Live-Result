@@ -439,315 +439,53 @@ td.rcell{position:relative !important}
 <style>.corner, .f-btn { display: none !important; }</style>
 
 <script>
-// FIX: Max 150 only, no auto increase beyond 150, only + and - buttons change count
-(function(){
-  // Cap data to 150 max on load - prevent auto 200
+function backupData(){
   try{
-    if(window.data && window.data.length > 150){
-      console.log("Capping data from", window.data.length, "to 150");
-      window.data = window.data.slice(0, 150);
-      try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
-    }
-    // Also cap competitions data
-    if(window.competitions){
-      window.competitions.forEach(comp => {
-        if(comp.data && comp.data.length > 150){
-          comp.data = comp.data.slice(0, 150);
-        }
-      });
-      try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-    }
+    let backupData = {
+      data: JSON.parse(JSON.stringify(data || [])),
+      competitions: JSON.parse(JSON.stringify(competitions || [])),
+      currentId: currentId,
+      time: Date.now(),
+      malsaram: document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '',
+      sthalam: document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '',
+      date: document.getElementById('dateInput') ? document.getElementById('dateInput').value : ''
+    };
+    let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+    backups.unshift(backupData);
+    if(backups.length > 10) backups = backups.slice(0, 10);
+    localStorage.setItem('kaalapoottu_backups', JSON.stringify(backups));
+    localStorage.setItem('kaalapoottu_last_backup', JSON.stringify(backupData));
   }catch(e){}
-
-  // Override addRow to max 150 only, no auto
-  let origAddRow = window.addRow;
-  window.addRow = function(){
+}
+function restoreFromBackup(){
+  try{
+    let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+    if(backups.length === 0){ alert("Backup ഇല്ല"); return; }
+    let goodBackup = null;
+    for(let b of backups){
+      if(b.data && b.data.some(r=>r.name && r.name.trim()!="")){ goodBackup = b; break; }
+    }
+    if(!goodBackup) goodBackup = backups[0];
+    if(!goodBackup){ alert("Backup-ൽ data ഇല്ല"); return; }
+    if(!confirm("Backup-ൽ നിന്ന് Restore ചെയ്യണോ? Time: " + new Date(goodBackup.time).toLocaleString() + "\nMalsaram: " + (goodBackup.malsaram || ''))) return;
+    data = JSON.parse(JSON.stringify(goodBackup.data));
+    competitions = JSON.parse(JSON.stringify(goodBackup.competitions));
+    currentId = goodBackup.currentId;
     try{
-      if(!window.data) window.data = [];
-      if(window.data.length >= 150){
-        alert("Max 150 വണ്ടി മാത്രം");
-        return;
-      }
-      // Only admin can add via + button - check isAdmin
-      if(typeof window.isAdmin !== 'undefined' && !window.isAdmin){
-        alert("അഡ്മിൻ മാത്രം! - ആദ്യം Unlock ചെയ്യുക");
-        return;
-      }
-      window.data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-      try{
-        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
-        if(cur) cur.data = window.data;
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-      }catch(e){}
-      if(typeof render === 'function') render();
-      if(typeof save === 'function') save(); else if(typeof saveCompetitions === 'function') saveCompetitions();
-      console.log("+ ONE added via admin, total:", window.data.length);
-    }catch(e){ console.error(e); }
-  };
-
-  // Override removeRow to min 1 only, no auto decrease
-  let origRemoveRow = window.removeRow;
-  window.removeRow = function(){
-    try{
-      if(!window.data) window.data = [];
-      if(window.data.length <= 1){
-        alert("കുറഞ്ഞത് 1 വണ്ടി വേണം");
-        return;
-      }
-      if(typeof window.isAdmin !== 'undefined' && !window.isAdmin){
-        alert("അഡ്മിൻ മാത്രം!");
-        return;
-      }
-      window.data.pop();
-      try{
-        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
-        if(cur) cur.data = window.data;
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-      }catch(e){}
-      if(typeof render === 'function') render();
-      if(typeof save === 'function') save(); else if(typeof saveCompetitions === 'function') saveCompetitions();
-      console.log("- ONE removed via admin, total:", window.data.length);
-    }catch(e){ console.error(e); }
-  };
-
-  // Prevent any auto increase - monitor data length
-  setInterval(function(){
-    try{
-      if(window.data && window.data.length > 150){
-        console.log("Auto-capping from", window.data.length, "to 150");
-        window.data = window.data.slice(0, 150);
-        let cur = window.competitions ? window.competitions.find(c=>c.id==window.currentId) : null;
-        if(cur) cur.data = window.data;
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        if(typeof render === 'function') render();
-      }
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+      localStorage.setItem('pothpoott_currentId_v8', currentId);
     }catch(e){}
-  }, 2000);
-})();
-</script>
-
-
-<script>
-// FIX: Prevent 100% data loss during competition - robust backup system
-(function(){
-  // 1. Backup system - save to 3 backup slots every save
-  function backupData(){
-    try{
-      let backupKey = 'kaalapoottu_backup_' + Date.now();
-      let backupData = {
-        data: JSON.parse(JSON.stringify(window.data || [])),
-        competitions: JSON.parse(JSON.stringify(window.competitions || [])),
-        currentId: window.currentId,
-        time: Date.now(),
-        malsaram: document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '',
-        sthalam: document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '',
-        date: document.getElementById('dateInput') ? document.getElementById('dateInput').value : ''
-      };
-      // Save to 3 rotating backups
-      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
-      backups.unshift(backupData);
-      if(backups.length > 10) backups = backups.slice(0, 10); // Keep last 10 backups
-      localStorage.setItem('kaalapoottu_backups', JSON.stringify(backups));
-      localStorage.setItem('kaalapoottu_last_backup', JSON.stringify(backupData));
-      console.log("✅ Backup saved at", new Date().toLocaleTimeString(), "Total backups:", backups.length);
-    }catch(e){ console.error("Backup failed:", e); }
-  }
-
-  // Auto backup every 30 seconds
-  setInterval(function(){
-    try{
-      if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
-        backupData();
-      }
-    }catch(e){}
-  }, 30000); // 30 seconds
-
-  // Backup on every save
-  let origSave = window.save;
-  if(origSave){
-    window.save = function(){
-      try{ origSave(); }catch(e){}
-      try{ backupData(); }catch(e){}
-    };
-  }
-
-  let origSaveComp = window.saveCompetitions;
-  if(origSaveComp){
-    window.saveCompetitions = function(){
-      try{ origSaveComp(); }catch(e){}
-      try{ backupData(); }catch(e){}
-      try{ if(typeof pushLive==='function' && window.isAdmin) pushLive(); }catch(e){}
-    };
-  }
-
-  // 2. Data loss protection - prevent empty data from overwriting filled data
-  window.restoreFromBackup = function(){
-    try{
-      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
-      if(backups.length === 0){
-        alert("Backup ഇല്ല");
-        return;
-      }
-      // Find latest backup with data
-      let goodBackup = null;
-      for(let b of backups){
-        if(b.data && b.data.some(r=>r.name && r.name.trim()!="")){
-          goodBackup = b;
-          break;
-        }
-      }
-      if(!goodBackup){
-        alert("Backup-ൽ data ഇല്ല");
-        return;
-      }
-      if(!confirm("Backup-ൽ നിന്ന് Restore ചെയ്യണോ? Time: " + new Date(goodBackup.time).toLocaleString() + "\nMalsaram: " + (goodBackup.malsaram || ''))){
-        return;
-      }
-      window.data = JSON.parse(JSON.stringify(goodBackup.data));
-      window.competitions = JSON.parse(JSON.stringify(goodBackup.competitions));
-      window.currentId = goodBackup.currentId;
-      try{
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('pothpoott_currentId_v8', window.currentId);
-        if(goodBackup.malsaram) localStorage.setItem('kaalapoottu_malsaram', goodBackup.malsaram);
-        if(goodBackup.sthalam) localStorage.setItem('kaalapoottu_sthalam', goodBackup.sthalam);
-        if(goodBackup.date) localStorage.setItem('kaalapoottu_date', goodBackup.date);
-      }catch(e){}
-      if(typeof render === 'function') render();
-      if(typeof renderCompSelect === 'function') renderCompSelect();
-      if(typeof loadMetaDate === 'function') loadMetaDate();
-      alert("✅ Restore ആയി! Time: " + new Date(goodBackup.time).toLocaleString());
-    }catch(e){ alert("Restore failed: " + e.message); }
-  };
-
-  // 3. Prevent empty data overwrite - if current data has names, don't allow empty overwrite
-  let origLoadComp = window.loadCompetitions;
-  if(origLoadComp){
-    window.loadCompetitions = function(){
-      try{
-        // Before loading, save current data if it has names
-        if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
-          backupData();
-        }
-        origLoadComp();
-        // After loading, check if data became empty but backup has data
-        setTimeout(function(){
-          try{
-            if(!window.data || !window.data.some(r=>r.name && r.name.trim()!="")){
-              let lastBackup = JSON.parse(localStorage.getItem('kaalapoottu_last_backup') || 'null');
-              if(lastBackup && lastBackup.data && lastBackup.data.some(r=>r.name && r.name.trim()!="")){
-                console.log("⚠️ Data became empty, but backup has data - keeping backup");
-                // Don't auto-restore, but show warning
-                let ls = document.getElementById('liveStatus');
-                if(ls){
-                  ls.textContent = '⚠️ Data empty! Backup ഉണ്ട് - Restore ബട്ടൺ അടിക്കുക';
-                  ls.style.background = '#ff9800';
-                }
-              }
-            }
-          }catch(e){}
-        }, 1000);
-      }catch(e){ try{ origLoadComp(); }catch(e2){} }
-    };
-  }
-
-  // 4. Protect against Firebase empty overwrite
-  let origListenLive = window.listenLive;
-  // Already fixed to not overwrite admin
-
-  // 5. Add Restore button to UI
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      let controls = document.querySelector('.controls');
-      if(controls){
-        // Check if restore button already exists
-        if(!document.getElementById('restoreBtn')){
-          let restoreBtn = document.createElement('button');
-          restoreBtn.id = 'restoreBtn';
-          restoreBtn.textContent = '♻️ Restore Backup';
-          restoreBtn.style.cssText = 'background:#4caf50;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;margin-left:4px';
-          restoreBtn.onclick = function(){ window.restoreFromBackup(); };
-          controls.appendChild(restoreBtn);
-        }
-      }
-      // Auto backup on load if has data
-      setTimeout(function(){ 
-        if(window.data && window.data.some(r=>r.name && r.name.trim()!="")){
-          backupData();
-        }
-      }, 2000);
-    }, 1500);
-  });
-
-  console.log("✅ Data loss protection active - Backup every 30 sec, 10 backups kept");
-})();
-</script>
-
-
-<script>
-// Heading 100% public live - final
-(function(){
-  function pullHeadingLive(){
-    try{
-      if(window.isAdmin) return;
-      if(typeof KVDB_LIVE !== 'undefined'){
-        fetch(KVDB_LIVE).then(r=>r.text()).then(t=>{
-          try{
-            let v = JSON.parse(t);
-            if(v && (v.malsaram || v.sthalam || v.date)){
-              let mal = document.getElementById('malsaramInput');
-              let sth = document.getElementById('sthalamInput');
-              let dat = document.getElementById('dateInput');
-              if(mal && v.malsaram !== undefined) mal.value = v.malsaram || '';
-              if(sth && v.sthalam !== undefined) sth.value = v.sthalam || '';
-              if(dat && v.date !== undefined) dat.value = v.date || '';
-              try{
-                let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
-                if(cur){
-                  if(v.malsaram !== undefined) cur.malsaram = v.malsaram;
-                  if(v.sthalam !== undefined) cur.sthalam = v.sthalam;
-                  if(v.date !== undefined) cur.date = v.date;
-                  localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-                  if(typeof renderCompSelect === 'function') renderCompSelect();
-                }
-              }catch(e){}
-            }
-          }catch(e){}
-        }).catch(()=>{});
-      }
-      if(typeof KVDB_DATA !== 'undefined'){
-        fetch(KVDB_DATA).then(r=>r.text()).then(t=>{
-          try{
-            let v = JSON.parse(t);
-            if(v && (v.malsaram || v.sthalam || v.date)){
-              let mal = document.getElementById('malsaramInput');
-              let sth = document.getElementById('sthalamInput');
-              let dat = document.getElementById('dateInput');
-              if(mal && v.malsaram !== undefined) mal.value = v.malsaram || '';
-              if(sth && v.sthalam !== undefined) sth.value = v.sthalam || '';
-              if(dat && v.date !== undefined) dat.value = v.date || '';
-            }
-          }catch(e){}
-        }).catch(()=>{});
-      }
-    }catch(e){}
-  }
-  setInterval(function(){ if(!window.isAdmin) pullHeadingLive(); }, 2000);
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      let mal = document.getElementById('malsaramInput');
-      let sth = document.getElementById('sthalamInput');
-      let dat = document.getElementById('dateInput');
-      if(mal) mal.addEventListener('input', function(){ try{ if(typeof pushLive==='function') pushLive(); }catch(e){} });
-      if(sth) sth.addEventListener('input', function(){ try{ if(typeof pushLive==='function') pushLive(); }catch(e){} });
-      if(dat) dat.addEventListener('change', function(){ try{ if(typeof pushLive==='function') pushLive(); }catch(e){} });
-    }, 1000);
-  });
-})();
+    if(typeof render === 'function') render();
+    if(typeof renderCompSelect === 'function') renderCompSelect();
+    if(typeof loadMetaDate === 'function') loadMetaDate();
+    let mal = document.getElementById('malsaramInput'); if(mal) mal.value = goodBackup.malsaram || '';
+    let sth = document.getElementById('sthalamInput'); if(sth) sth.value = goodBackup.sthalam || '';
+    let dat = document.getElementById('dateInput'); if(dat) dat.value = goodBackup.date || '';
+    alert("✅ Restore ആയി! Time: " + new Date(goodBackup.time).toLocaleString());
+  }catch(e){ alert("Restore failed: " + e.message); }
+}
+setInterval(function(){ try{ if(data && data.some(r=>r.name && r.name.trim()!="")) backupData(); }catch(e){} }, 30000);
 </script>
 
 </head><body>
@@ -826,22 +564,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 <select id="compSelect" onchange="switchCompetition(this.value)"></select>
-<div class="history-btns">
-<button class="btn-new" onclick="createNewCompetition()">➕ പുതിയ മത്സരം</button>
-<button class="btn-new" style="background:#ff9800;color:#000" onclick="renameCompetition()">✏️ പേര് മാറ്റുക</button>
-<button class="btn-delete" onclick="deleteCompetition()">🗑️ Delete</button>
-<button onclick="clearCurrent()" style="background:#ff5252;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px">🗑️ Clear</button>
-</div>
+<div class="history-btns" style="display:none"></div>
 </div>
 
 <div class="controls">
-<button class="btn btn-add" onclick="addRow()">+ പേര്</button>
-<!-- Clear All button disabled as per user request -->
-<button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
-<button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled oninput="try{ let cur=competitions.find(c=>c.id==currentId); if(cur){ cur.malsaram=this.value; } localStorage.setItem('kaalapoottu_malsaram',this.value); localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); if(typeof pushLive==='function') pushLive(); }catch(e){}" onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions();}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled oninput="try{ let cur=competitions.find(c=>c.id==currentId); if(cur){ cur.sthalam=this.value; } localStorage.setItem('kaalapoottu_sthalam',this.value); localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); if(typeof pushLive==='function') pushLive(); }catch(e){}" onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions();}catch(e){}">
-<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
+<button class="btn-new" onclick="createNewCompetition(); return false;">➕ പുതിയ മത്സരം</button>
+<button class="btn-new" style="background:#ff9800;color:#000" onclick="renameCompetition(); return false;">✏️ പേര് മാറ്റുക</button>
+<button class="btn-delete" onclick="deleteCompetition(); return false;">🗑️ Delete</button>
+<button onclick="clearCurrent(); return false;" style="background:#ff5252;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px">🗑️ Clear</button>
+<button class="btn btn-add" onclick="addRow(); return false;">+ പേര്</button>
+<button class="btn btn-remove" onclick="removeRow(); return false;">- പേര്</button>
+<button id="restoreBtn" onclick="restoreFromBackup(); return false;" style="background:#4caf50;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px;margin-left:4px">♻️ Restore Backup</button>
+<button class="btn" onclick="clearAll(); return false;" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -879,8 +613,8 @@ let data = [{"name": "പോത്ത് പൂട്ട് കമ്മറ്�
 try{
  let s=localStorage.getItem('kaalapoottu_v2');
  if(s) data=JSON.parse(s);
- else for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
-}catch(e){ for(let i=0;i<46;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); }
+ else for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+}catch(e){ for(let i=0;i<15;i++) data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""}); }
 
 function save(){ try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); saveCompetitions(); }catch(e){} }
 
@@ -1164,19 +898,7 @@ try{
 function pushLive(){
   if(!isLive || !liveRef || !isAdmin) return;
   try{
-    let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
-    let malsaramVal = cur ? cur.malsaram : (document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '');
-    let sthalamVal = cur ? cur.sthalam : (document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '');
-    let dateVal = cur ? cur.date : (document.getElementById('dateInput') ? document.getElementById('dateInput').value : '');
-    liveRef.set({
-      data:data, 
-      time:Date.now(), 
-      best:document.getElementById('bestTime')?.textContent,
-      malsaram: malsaramVal,
-      sthalam: sthalamVal,
-      date: dateVal,
-      currentId: currentId
-    });
+    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent});
     document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
     document.getElementById('liveStatus').style.background='#c8e6c9';
   }catch(e){}
@@ -1189,24 +911,9 @@ function listenLive(){
     if(!v || !v.data) return;
     if(isAdmin) return; // Admin doesn't overwrite own edits
     data=v.data;
-    // Update heading for public - 100% live
-    try{
-      if(v.malsaram !== undefined){
-        let cur = competitions ? competitions.find(c=>c.id==v.currentId) : null;
-        if(cur){ cur.malsaram = v.malsaram; cur.sthalam = v.sthalam; cur.date = v.date; }
-        let mal = document.getElementById('malsaramInput');
-        let sth = document.getElementById('sthalamInput');
-        let dat = document.getElementById('dateInput');
-        if(mal) mal.value = v.malsaram || '';
-        if(sth) sth.value = v.sthalam || '';
-        if(dat) dat.value = v.date || '';
-        try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
-        if(typeof renderCompSelect === 'function') renderCompSelect();
-      }
-    }catch(e){}
     render();
     let ls=document.getElementById('liveStatus');
-    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString() + (v.malsaram ? ' - ' + v.malsaram : '');
+    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString();
   });
 }
 
@@ -1540,7 +1247,6 @@ function handleDateChange(val){
   if(cur){ cur.date=val; cur.ts=Date.now(); }
   localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
   renderCompSelect();
-  if(typeof pushLive==='function') pushLive();
  }catch(e){}
 }
 function loadMetaDate(){
@@ -1559,7 +1265,7 @@ function loadMetaDate(){
  }catch(e){}
 }
 
-function saveCompetitions(){ try{ if(typeof pushLive==='function' && window.isAdmin) pushLive(); }catch(e){} 
+function saveCompetitions(){
  try{
   let cur=competitions.find(c=>c.id==currentId);
   if(cur){ cur.data=data; cur.malsaram=document.getElementById('malsaramInput')?.value||cur.malsaram; cur.sthalam=document.getElementById('sthalamInput')?.value||cur.sthalam; cur.date=document.getElementById('dateInput')?.value||cur.date; cur.ts=Date.now(); }
@@ -1739,7 +1445,7 @@ function ensure44Optional(){
         data: [],
         ts: Date.now()
       });
-      for(let i=0;i<46;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
+      for(let i=0;i<44;i++) competitions[0].data.push({name:"",r1:"",r2:"",r3:"",fd1:"",fd2:"",fd3:""});
       try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions)); }catch(e){}
       try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
     }
