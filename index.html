@@ -599,86 +599,163 @@ function showPwdBox(){
 
 
 <script>
-// FIX: Row 1 name not visible to public - ensure all rows including row 1 live
-(function(){
-  function pullDataLive(){
+// LIVE 100% working - Row 1 + all rows + heading
+window.KVDB_LIVE = window.KVDB_LIVE || "https://kvdb.io/As9tFq6r8n3k2p5x7y1z/POTHUPOOTTU_LIVE";
+window.KVDB_DATA = window.KVDB_DATA || "https://kvdb.io/As9tFq6r8n3k2p5x7y1z/POTHUPOOTTU_DATA";
+
+function pushLive(){
+  try{
+    if(typeof window.isAdmin !== 'undefined' && !window.isAdmin) return;
+    if(typeof isAdmin !== 'undefined' && !isAdmin) return;
+    
+    let cur = null;
+    try{ cur = competitions ? competitions.find(c=>c.id==currentId) : null; }catch(e){}
+    
+    let malsaramVal = '';
+    let sthalamVal = '';
+    let dateVal = '';
     try{
-      if(window.isAdmin) return;
-      // Try KVDB_DATA
-      if(typeof KVDB_DATA !== 'undefined'){
-        fetch(KVDB_DATA).then(r=>r.text()).then(t=>{
-          try{
-            let v = JSON.parse(t);
-            if(v && v.data && Array.isArray(v.data) && v.data.length > 0){
-              // Check if row 1 has name in live data but not in local
-              if(v.data[0] && v.data[0].name && v.data[0].name.trim() !== ''){
-                let localFirst = window.data && window.data[0] ? window.data[0].name : '';
-                if(localFirst !== v.data[0].name){
-                  console.log("Row 1 name live update:", v.data[0].name);
-                }
-              }
-              window.data = v.data;
-              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
-              if(typeof render === 'function') render();
-              // Also update heading if present
-              if(v.malsaram !== undefined){
-                let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
-                let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
-                let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
-              }
-            }
-          }catch(e){}
-        }).catch(()=>{});
+      malsaramVal = cur ? cur.malsaram : '';
+      sthalamVal = cur ? cur.sthalam : '';
+      dateVal = cur ? cur.date : '';
+      if(!malsaramVal){ let el = document.getElementById('malsaramInput'); if(el) malsaramVal = el.value; }
+      if(!sthalamVal){ let el = document.getElementById('sthalamInput'); if(el) sthalamVal = el.value; }
+      if(!dateVal){ let el = document.getElementById('dateInput'); if(el) dateVal = el.value; }
+    }catch(e){}
+    
+    let payload = {
+      data: JSON.parse(JSON.stringify(data || [])),
+      malsaram: malsaramVal,
+      sthalam: sthalamVal,
+      date: dateVal,
+      currentId: currentId,
+      time: Date.now(),
+      best: document.getElementById('bestTime') ? document.getElementById('bestTime').textContent : ''
+    };
+    
+    // Firebase
+    try{
+      if(typeof liveRef !== 'undefined' && liveRef && window.isAdmin){
+        liveRef.set(payload);
       }
-      // Try Firebase
+    }catch(e){}
+    
+    // KVDB - for public including row 1
+    try{
+      let jsonStr = JSON.stringify(payload);
+      fetch(window.KVDB_DATA, {method: 'POST', body: jsonStr, headers: {'Content-Type': 'application/json'}}).catch(()=>{});
+      fetch(window.KVDB_LIVE, {method: 'POST', body: jsonStr, headers: {'Content-Type': 'application/json'}}).catch(()=>{});
+    }catch(e){}
+    
+    let ls = document.getElementById('liveStatus');
+    if(ls && window.isAdmin){
+      ls.textContent = '🔴 LIVE - Admin Editing - ' + new Date().toLocaleTimeString() + ' - Row1..Row150 Public Live';
+      ls.style.background = '#c8e6c9';
+    }
+    
+    console.log("✅ pushLive - Row 1 to Row 150 + heading -", payload.data.length, "rows, first:", payload.data[0] ? payload.data[0].name : "empty");
+  }catch(e){ console.error("pushLive error", e); }
+}
+
+function pullLiveForPublic(){
+  try{
+    if(window.isAdmin || isAdmin) return;
+    // KVDB
+    fetch(window.KVDB_DATA).then(r=>r.text()).then(t=>{
       try{
-        if(typeof liveRef !== 'undefined' && liveRef){
-          liveRef.once('value').then(snap=>{
-            let v = snap.val();
-            if(v && v.data && Array.isArray(v.data)){
-              window.data = v.data;
-              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
-              if(typeof render === 'function') render();
-              if(v.malsaram !== undefined){
-                let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
-                let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
-                let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
-              }
-            }
-          }).catch(()=>{});
+        let v = JSON.parse(t);
+        if(v && v.data && Array.isArray(v.data) && v.data.length > 0){
+          // Only update if data has content
+          let hasContent = v.data.some(r=> r.name && r.name.trim() !== '' || r.r1 || r.r2 || r.r3);
+          if(hasContent || v.data.length !== (window.data ? window.data.length : 0)){
+            window.data = v.data;
+            data = v.data;
+            try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
+            if(typeof render === 'function') render();
+            console.log("✅ Public pull -", v.data.length, "rows, Row1:", v.data[0] ? v.data[0].name : "empty");
+          }
+          // Heading
+          if(v.malsaram !== undefined){
+            let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
+            let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
+            let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
+          }
         }
       }catch(e){}
+    }).catch(()=>{});
+    
+    // Firebase as backup
+    try{
+      if(typeof liveRef !== 'undefined' && liveRef){
+        liveRef.once('value').then(snap=>{
+          let v = snap.val();
+          if(v && v.data && Array.isArray(v.data)){
+            let hasContent = v.data.some(r=> r.name && r.name.trim() !== '');
+            if(hasContent){
+              window.data = v.data;
+              data = v.data;
+              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
+              if(typeof render === 'function') render();
+            }
+            if(v.malsaram !== undefined){
+              let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
+              let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
+              let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
+            }
+          }
+        }).catch(()=>{});
+      }
     }catch(e){}
-  }
+  }catch(e){}
+}
 
-  // Pull data every 2 sec for public - including row 1
-  setInterval(function(){ 
-    try{ if(!window.isAdmin) pullDataLive(); }catch(e){} 
-  }, 2000);
-
-  // Admin push includes row 1 - force push on name input
+// Public pulls every 2 sec, Admin pushes on every input
+(function(){
+  // Public pull interval
+  setInterval(function(){ try{ if(!window.isAdmin && !isAdmin) pullLiveForPublic(); }catch(e){} }, 2000);
+  
+  // Admin push on any input
   document.addEventListener('DOMContentLoaded', function(){
     setTimeout(function(){
-      // Add listener to all name inputs to push live including row 1
       let tbody = document.getElementById('tbody');
       if(tbody){
         tbody.addEventListener('input', function(e){
           try{
-            if(e.target && e.target.classList.contains('name')){
+            if(window.isAdmin || isAdmin){
               if(typeof pushLive === 'function') pushLive();
               if(typeof backupData === 'function') backupData();
             }
           }catch(err){}
         });
+        tbody.addEventListener('change', function(e){
+          try{
+            if(window.isAdmin || isAdmin){
+              if(typeof pushLive === 'function') pushLive();
+            }
+          }catch(err){}
+        });
       }
-      // Also initial push
-      if(window.isAdmin && typeof pushLive === 'function'){
+      // Initial pull for public
+      if(!window.isAdmin && !isAdmin) pullLiveForPublic();
+      // Initial push for admin
+      if((window.isAdmin || isAdmin) && typeof pushLive === 'function'){
         setTimeout(pushLive, 1000);
       }
     }, 1500);
   });
-
-  console.log("✅ Row 1 fix active - public pulls all rows including row 1 every 2 sec");
+  
+  // Override save to push live
+  try{
+    let origSave = window.save;
+    if(typeof origSave === 'function'){
+      window.save = function(){
+        origSave();
+        if((window.isAdmin || isAdmin) && typeof pushLive === 'function') pushLive();
+      };
+    }
+  }catch(e){}
+  
+  console.log("✅ Live system - Admin push on input, Public pull every 2 sec - Row1 to Row150");
 })();
 </script>
 
@@ -899,7 +976,7 @@ function render(){
    let subBlocked=f1||f2, gBlocked=f1||f2||f3;
    let tr=document.createElement('tr');
    tr.innerHTML=`<td style="position:relative">${idx+1}<div class="corner" onclick="if(isAdmin){data[${idx}].name='';data[${idx}].r1='';data[${idx}].r2='';data[${idx}].r3='';render();save();}" title="Clear row"></div></td>
-   <td style="position:relative"><input class="name" value="${(r.name||"").replace(/"/g, "&quot;")}" ${dis} oninput="data[${idx}].name=this.value;update();save();if(typeof pushLive===\"function\") pushLive();"><div class="corner" style="display:none" title="Disabled"></div></td>
+   <td style="position:relative"><input class="name" value="${(r.name||"").replace(/"/g, "&quot;")}" ${dis} oninput="data[${idx}].name=this.value;update();save();if((window.isAdmin||isAdmin) && typeof pushLive===\"function\") pushLive();"><div class="corner" style="display:none" title="Disabled"></div></td>
    <td class="${c1} rcell" data-idx="${idx}" data-col="r1" oncontextmenu="return showCtx(event,${idx},'r1')"><input value="${r.r1}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} oninput="handle(${idx},'r1',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r1')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd1||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd1',this.value)"></td>
    <td class="${c2} rcell" data-idx="${idx}" data-col="r2" oncontextmenu="return showCtx(event,${idx},'r2')"><input value="${r.r2}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} ${f1?'disabled':''} oninput="handle(${idx},'r2',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r2')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd2||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd2',this.value)"></td>
    <td class="sub-col ${subBlocked?'foul':''}" id="sub-${idx}">-</td>
@@ -1088,82 +1165,7 @@ try{
   console.log('Firebase not configured - offline mode');
 }
 
-function pushLive(){
-  if(!isLive || !liveRef || !isAdmin) return;
-  try{
-    let cur = competitions ? competitions.find(c=>c.id==currentId) : null;
-    let malsaramVal = cur ? cur.malsaram : (document.getElementById('malsaramInput') ? document.getElementById('malsaramInput').value : '');
-    let sthalamVal = cur ? cur.sthalam : (document.getElementById('sthalamInput') ? document.getElementById('sthalamInput').value : '');
-    let dateVal = cur ? cur.date : (document.getElementById('dateInput') ? document.getElementById('dateInput').value : '');
-    liveRef.set({data:data, time:Date.now(), best:document.getElementById('bestTime')?.textContent, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId});
-    document.getElementById('liveStatus').textContent='🔴 LIVE - Admin Editing - '+new Date().toLocaleTimeString()+' - Viewers can see live';
-    document.getElementById('liveStatus').style.background='#c8e6c9';
-    // Also KVDB for public
-    try{
-      if(typeof KVDB_LIVE !== 'undefined'){
-        let payload = JSON.stringify({data:data, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId, time: Date.now()});
-        fetch(KVDB_LIVE, {method: 'POST', body: payload}).catch(()=>{});
-      }
-      if(typeof KVDB_DATA !== 'undefined'){
-        let payload2 = JSON.stringify({data:data, malsaram: malsaramVal, sthalam: sthalamVal, date: dateVal, currentId: currentId, time: Date.now()});
-        fetch(KVDB_DATA, {method: 'POST', body: payload2}).catch(()=>{});
-      }
-    }catch(e){}
-  }catch(e){}
-}
 
-function listenLive(){
-  if(!isLive || !liveRef) return;
-  liveRef.on('value', snap=>{
-    let v=snap.val();
-    if(!v || !v.data) return;
-    if(isAdmin) return; // Admin doesn't overwrite own edits
-    data=v.data;
-    // Heading live for public
-    try{
-      if(v.malsaram !== undefined){
-        let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
-        let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
-        let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
-        let cur = competitions ? competitions.find(c=>c.id==v.currentId) : null;
-        if(cur){
-          cur.malsaram = v.malsaram || cur.malsaram;
-          cur.sthalam = v.sthalam || cur.sthalam;
-          cur.date = v.date || cur.date;
-          localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
-          if(typeof renderCompSelect === 'function') renderCompSelect();
-        }
-      }
-    }catch(e){}
-    render();
-    let ls=document.getElementById('liveStatus');
-    if(ls) ls.textContent='🔴 LIVE Viewing - Updated: '+new Date(v.time).toLocaleTimeString() + (v.malsaram ? ' - ' + v.malsaram : '');
-  });
-}
-
-// Override save to push live
-const origSave=save;
-save=function(){
-  origSave();
-  pushLive();
-}
-
-// Start listening if viewer
-setTimeout(()=>{
-  if(!isAdmin) listenLive();
-  // If admin unlocks later, stop listening and start pushing
-  let origToggle=toggleLock;
-  toggleLock=function(){
-    origToggle();
-    if(isAdmin){
-      if(liveRef) liveRef.off();
-      document.getElementById('liveStatus').textContent='🔴 LIVE - You are Admin - Others see live';
-    }else{
-      listenLive();
-    }
-  };
-},500);
-</script>
 <div id="onlineStatus" style="padding:5px;text-align:center;font-size:10px;background:#e8f5e9;width:200mm;max-width:200mm">💾 Offline Save: ON | Live Ready - Upload to GitHub Pages</div>
 
 
