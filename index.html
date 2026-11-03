@@ -597,6 +597,91 @@ function showPwdBox(){
 }
 </script>
 
+
+<script>
+// FIX: Row 1 name not visible to public - ensure all rows including row 1 live
+(function(){
+  function pullDataLive(){
+    try{
+      if(window.isAdmin) return;
+      // Try KVDB_DATA
+      if(typeof KVDB_DATA !== 'undefined'){
+        fetch(KVDB_DATA).then(r=>r.text()).then(t=>{
+          try{
+            let v = JSON.parse(t);
+            if(v && v.data && Array.isArray(v.data) && v.data.length > 0){
+              // Check if row 1 has name in live data but not in local
+              if(v.data[0] && v.data[0].name && v.data[0].name.trim() !== ''){
+                let localFirst = window.data && window.data[0] ? window.data[0].name : '';
+                if(localFirst !== v.data[0].name){
+                  console.log("Row 1 name live update:", v.data[0].name);
+                }
+              }
+              window.data = v.data;
+              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
+              if(typeof render === 'function') render();
+              // Also update heading if present
+              if(v.malsaram !== undefined){
+                let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
+                let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
+                let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
+              }
+            }
+          }catch(e){}
+        }).catch(()=>{});
+      }
+      // Try Firebase
+      try{
+        if(typeof liveRef !== 'undefined' && liveRef){
+          liveRef.once('value').then(snap=>{
+            let v = snap.val();
+            if(v && v.data && Array.isArray(v.data)){
+              window.data = v.data;
+              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
+              if(typeof render === 'function') render();
+              if(v.malsaram !== undefined){
+                let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
+                let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
+                let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
+              }
+            }
+          }).catch(()=>{});
+        }
+      }catch(e){}
+    }catch(e){}
+  }
+
+  // Pull data every 2 sec for public - including row 1
+  setInterval(function(){ 
+    try{ if(!window.isAdmin) pullDataLive(); }catch(e){} 
+  }, 2000);
+
+  // Admin push includes row 1 - force push on name input
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      // Add listener to all name inputs to push live including row 1
+      let tbody = document.getElementById('tbody');
+      if(tbody){
+        tbody.addEventListener('input', function(e){
+          try{
+            if(e.target && e.target.classList.contains('name')){
+              if(typeof pushLive === 'function') pushLive();
+              if(typeof backupData === 'function') backupData();
+            }
+          }catch(err){}
+        });
+      }
+      // Also initial push
+      if(window.isAdmin && typeof pushLive === 'function'){
+        setTimeout(pushLive, 1000);
+      }
+    }, 1500);
+  });
+
+  console.log("✅ Row 1 fix active - public pulls all rows including row 1 every 2 sec");
+})();
+</script>
+
 </head><body>
 
 <style>
@@ -814,7 +899,7 @@ function render(){
    let subBlocked=f1||f2, gBlocked=f1||f2||f3;
    let tr=document.createElement('tr');
    tr.innerHTML=`<td style="position:relative">${idx+1}<div class="corner" onclick="if(isAdmin){data[${idx}].name='';data[${idx}].r1='';data[${idx}].r2='';data[${idx}].r3='';render();save();}" title="Clear row"></div></td>
-   <td style="position:relative"><input class="name" value="${r.name}" ${dis} oninput="data[${idx}].name=this.value;update();save()"><div class="corner" style="display:none" title="Disabled"></div></td>
+   <td style="position:relative"><input class="name" value="${(r.name||"").replace(/"/g, "&quot;")}" ${dis} oninput="data[${idx}].name=this.value;update();save();if(typeof pushLive===\"function\") pushLive();"><div class="corner" style="display:none" title="Disabled"></div></td>
    <td class="${c1} rcell" data-idx="${idx}" data-col="r1" oncontextmenu="return showCtx(event,${idx},'r1')"><input value="${r.r1}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} oninput="handle(${idx},'r1',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r1')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd1||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd1',this.value)"></td>
    <td class="${c2} rcell" data-idx="${idx}" data-col="r2" oncontextmenu="return showCtx(event,${idx},'r2')"><input value="${r.r2}" inputmode="decimal" autocomplete="off" spellcheck="false" pattern="[0-9.]*Ff*" type="text" ${dis} ${f1?'disabled':''} oninput="handle(${idx},'r2',this.value,this)"><button class="f-btn" onclick="setFoul(${idx},'r2')" title="Foul - F അടിക്കാൻ">F</button><input class="foul-note" inputmode="decimal" type="text" pattern="[0-9.]*" value="${r.fd2||''}" placeholder="Foul" ${dis} oninput="handleFoulDetail(${idx},'fd2',this.value)"></td>
    <td class="sub-col ${subBlocked?'foul':''}" id="sub-${idx}">-</td>
