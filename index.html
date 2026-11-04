@@ -532,148 +532,7 @@ function handleDateChange(val){
 </script>
 
 
-<script>
-// CORRECT KVDB BUCKET - SINGLE SOURCE OF TRUTH
-const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE';
-const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
-const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
-const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
 
-function isAdminUnlocked(){
-  try{ return window.isAdmin || (typeof isAdmin !== 'undefined' && isAdmin); }catch(e){ return window.isAdmin; }
-}
-
-function pushLive(){
-  try{
-    if(!isAdminUnlocked()) return;
-    let cur = null;
-    try{ cur = competitions.find(c=>c.id==currentId); }catch(e){}
-    if(!cur) return;
-    
-    try{
-      let malEl = document.getElementById('malsaramInput');
-      let sthEl = document.getElementById('sthalamInput');
-      let datEl = document.getElementById('dateInput');
-      if(malEl) cur.malsaram = malEl.value;
-      if(sthEl) cur.sthalam = sthEl.value;
-      if(datEl) cur.date = datEl.value;
-      cur.data = JSON.parse(JSON.stringify(data));
-    }catch(e){}
-    
-    let payload = {
-      data: JSON.parse(JSON.stringify(data)),
-      malsaram: cur.malsaram || '',
-      sthalam: cur.sthalam || '',
-      date: cur.date || '',
-      currentId: currentId,
-      ts: Date.now(),
-      best: document.getElementById('bestTime') ? document.getElementById('bestTime').textContent : ''
-    };
-    
-    // KVDB
-    try{ fetch(KVDB_DATA, {method: 'POST', body: JSON.stringify(payload)}).catch(()=>{}); }catch(e){}
-    try{ fetch(KVDB_LIVE, {method: 'POST', body: JSON.stringify(payload)}).catch(()=>{}); }catch(e){}
-    
-    // Firebase
-    try{
-      if(typeof liveRef !== 'undefined' && liveRef && isAdminUnlocked()){
-        liveRef.set(payload);
-      }
-    }catch(e){}
-    
-    let ls = document.getElementById('liveStatus');
-    if(ls && isAdminUnlocked()){
-      ls.textContent = '🔴 LIVE - ' + new Date().toLocaleTimeString() + ' - ' + data.length + ' rows public live';
-      ls.style.background = '#c8e6c9';
-    }
-  }catch(e){ console.error(e); }
-}
-
-function pullLiveForPublic(){
-  try{
-    if(isAdminUnlocked()) return;
-    
-    fetch(KVDB_DATA).then(r=>r.text()).then(t=>{
-      try{
-        let v = JSON.parse(t);
-        if(v && v.data && Array.isArray(v.data) && v.data.length > 0){
-          let hasContent = v.data.some(r=> (r.name && r.name.trim() !== '') || r.r1 || r.r2 || r.r3) || v.malsaram;
-          if(hasContent){
-            data = v.data;
-            window.data = v.data;
-            try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
-            if(typeof render === 'function') render();
-          }
-          if(v.malsaram !== undefined){
-            let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
-            let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
-            let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
-          }
-        }
-      }catch(e){}
-    }).catch(()=>{});
-    
-    try{
-      if(typeof liveRef !== 'undefined' && liveRef){
-        liveRef.once('value').then(snap=>{
-          let v = snap.val();
-          if(v && v.data && Array.isArray(v.data)){
-            let hasContent = v.data.some(r=> r.name && r.name.trim() !== '');
-            if(hasContent){
-              data = v.data;
-              window.data = v.data;
-              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
-              if(typeof render === 'function') render();
-            }
-            if(v.malsaram !== undefined){
-              let mal = document.getElementById('malsaramInput'); if(mal) mal.value = v.malsaram || '';
-              let sth = document.getElementById('sthalamInput'); if(sth) sth.value = v.sthalam || '';
-              let dat = document.getElementById('dateInput'); if(dat) dat.value = v.date || '';
-            }
-          }
-        }).catch(()=>{});
-      }
-    }catch(e){}
-  }catch(e){}
-}
-
-(function(){
-  setInterval(function(){ try{ if(!isAdminUnlocked()) pullLiveForPublic(); }catch(e){} }, 2000);
-  
-  document.addEventListener('DOMContentLoaded', function(){
-    setTimeout(function(){
-      let tbody = document.getElementById('tbody');
-      if(tbody){
-        tbody.addEventListener('input', function(e){
-          try{ if(isAdminUnlocked() && typeof pushLive === 'function'){ pushLive(); if(typeof backupData === 'function') backupData(); } }catch(err){}
-        });
-        tbody.addEventListener('change', function(e){
-          try{ if(isAdminUnlocked() && typeof pushLive === 'function') pushLive(); }catch(err){}
-        });
-      }
-      let mal = document.getElementById('malsaramInput');
-      let sth = document.getElementById('sthalamInput');
-      let dat = document.getElementById('dateInput');
-      if(mal) mal.addEventListener('input', function(){ if(isAdminUnlocked()) pushLive(); });
-      if(sth) sth.addEventListener('input', function(){ if(isAdminUnlocked()) pushLive(); });
-      if(dat){ dat.addEventListener('input', function(){ if(isAdminUnlocked()) pushLive(); }); dat.addEventListener('change', function(){ if(isAdminUnlocked()) pushLive(); }); }
-      
-      if(!isAdminUnlocked()) pullLiveForPublic();
-      if(isAdminUnlocked()) setTimeout(pushLive, 1000);
-    }, 1500);
-  });
-  
-  try{
-    let origSave = window.save;
-    if(typeof origSave === 'function'){
-      window.save = function(){
-        origSave();
-        if(isAdminUnlocked() && typeof pushLive === 'function') pushLive();
-      };
-    }
-  }catch(e){}
-})();
-</script>
 
 
 <style>
@@ -820,6 +679,235 @@ function handleFoulDetail(i,field,val){
     if(typeof pushLive === 'function') pushLive();
   }catch(e){}
 }
+</script>
+
+
+<script>
+// ENHANCED LIVE - Admin typing 100% public visible
+const KVDB_BUCKET = 'UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE';
+const KVDB_LIVE = 'https://kvdb.io/' + KVDB_BUCKET + '/live';
+const KVDB_DATA = 'https://kvdb.io/' + KVDB_BUCKET + '/data';
+const KVDB_COMPS = 'https://kvdb.io/' + KVDB_BUCKET + '/comps';
+
+function isAdminUnlocked(){
+  try{ 
+    if(window.isAdmin) return true;
+    if(typeof isAdmin !== 'undefined' && isAdmin) return true;
+    return false;
+  }catch(e){ return window.isAdmin || false; }
+}
+
+function pushLive(){
+  try{
+    if(!isAdminUnlocked()){
+      console.log("pushLive blocked - not admin");
+      return;
+    }
+    let cur = null;
+    try{ cur = competitions.find(c=>c.id==currentId); }catch(e){}
+    if(!cur){
+      console.log("pushLive - no cur");
+      return;
+    }
+    
+    try{
+      let malEl = document.getElementById('malsaramInput');
+      let sthEl = document.getElementById('sthalamInput');
+      let datEl = document.getElementById('dateInput');
+      if(malEl) cur.malsaram = malEl.value;
+      if(sthEl) cur.sthalam = sthEl.value;
+      if(datEl) cur.date = datEl.value;
+      cur.data = JSON.parse(JSON.stringify(data));
+      cur.ts = Date.now();
+    }catch(e){ console.error("pushLive cur update error", e); }
+    
+    let payload = {
+      data: JSON.parse(JSON.stringify(data)),
+      malsaram: cur.malsaram || '',
+      sthalam: cur.sthalam || '',
+      date: cur.date || '',
+      currentId: currentId,
+      ts: Date.now(),
+      time: Date.now()
+    };
+    
+    let jsonStr = JSON.stringify(payload);
+    
+    // KVDB - critical for public
+    try{
+      fetch(KVDB_DATA, {method: 'POST', body: jsonStr, headers: {'Content-Type': 'application/json'}})
+        .then(()=>console.log("✅ KVDB_DATA pushed", data.length, "rows, Row1:", data[0] ? data[0].name : "empty"))
+        .catch(e=>console.error("KVDB_DATA push error", e));
+    }catch(e){ console.error(e); }
+    
+    try{
+      fetch(KVDB_LIVE, {method: 'POST', body: jsonStr})
+        .then(()=>console.log("✅ KVDB_LIVE pushed"))
+        .catch(()=>{});
+    }catch(e){}
+    
+    try{
+      fetch(KVDB_COMPS, {method: 'POST', body: JSON.stringify(competitions)}).catch(()=>{});
+    }catch(e){}
+    
+    // Firebase
+    try{
+      if(typeof liveRef !== 'undefined' && liveRef){
+        liveRef.set(payload);
+        console.log("✅ Firebase pushed");
+      }
+    }catch(e){ console.error("Firebase push error", e); }
+    
+    let ls = document.getElementById('liveStatus');
+    if(ls){
+      ls.textContent = '🔴 LIVE - Admin typing - ' + new Date().toLocaleTimeString() + ' - ' + data.filter(r=>r.name).length + ' names - Public can see in 1 sec';
+      ls.style.background = '#00e676';
+      ls.style.color = '#000';
+      ls.style.fontWeight = '900';
+    }
+    
+    // Also save to localStorage for backup
+    try{
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+      localStorage.setItem('pothpoott_history_v8', JSON.stringify(competitions));
+    }catch(e){}
+    
+  }catch(e){ console.error("pushLive error", e); }
+}
+
+function pullLiveForPublic(){
+  try{
+    if(isAdminUnlocked()) return;
+    
+    let url = KVDB_DATA + '?t=' + Date.now(); // Cache bust
+    
+    fetch(url).then(r=>r.text()).then(t=>{
+      try{
+        if(!t || t.trim() === '' || t.trim() === 'null') return;
+        let v = JSON.parse(t);
+        if(!v) return;
+        
+        // If v is wrapped, unwrap
+        let payload = v;
+        
+        if(payload.data && Array.isArray(payload.data) && payload.data.length > 0){
+          let hasContent = payload.data.some(r=> (r.name && r.name.trim() !== '') || r.r1 || r.r2 || r.r3) || payload.malsaram;
+          
+          // Check if different from current
+          let currentFirst = data[0] ? data[0].name : '';
+          let newFirst = payload.data[0] ? payload.data[0].name : '';
+          
+          if(hasContent){
+            data = payload.data;
+            window.data = payload.data;
+            try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
+            if(typeof render === 'function') render();
+            console.log("✅ Public pulled KVDB_DATA -", data.length, "rows, Row1:", newFirst, "Heading:", payload.malsaram);
+            
+            let ls = document.getElementById('liveStatus');
+            if(ls){
+              ls.textContent = '🔴 LIVE Viewing - Updated: ' + new Date().toLocaleTimeString() + ' - ' + payload.malsaram;
+              ls.style.background = '#e3f2fd';
+            }
+          }
+        }
+        
+        if(payload.malsaram !== undefined){
+          let mal = document.getElementById('malsaramInput'); if(mal) mal.value = payload.malsaram || '';
+          let sth = document.getElementById('sthalamInput'); if(sth) sth.value = payload.sthalam || '';
+          let dat = document.getElementById('dateInput'); if(dat) dat.value = payload.date || '';
+        }
+        
+      }catch(e){ console.error("Public pull parse error", e, t.substring(0,100)); }
+    }).catch(e=>console.error("KVDB fetch error", e));
+    
+    // Firebase fallback
+    try{
+      if(typeof liveRef !== 'undefined' && liveRef){
+        liveRef.once('value').then(snap=>{
+          let v = snap.val();
+          if(v && v.data && Array.isArray(v.data) && v.data.length > 0){
+            let hasContent = v.data.some(r=> r.name && r.name.trim() !== '');
+            if(hasContent && !isAdminUnlocked()){
+              data = v.data;
+              window.data = v.data;
+              try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(data)); }catch(e){}
+              if(typeof render === 'function') render();
+              console.log("✅ Public pulled Firebase");
+            }
+          }
+        }).catch(()=>{});
+      }
+    }catch(e){}
+  }catch(e){ console.error(e); }
+}
+
+// Setup aggressive live
+(function(){
+  // Public pulls every 1 sec (faster)
+  setInterval(function(){ 
+    try{ 
+      if(!isAdminUnlocked()) pullLiveForPublic(); 
+    }catch(e){} 
+  }, 1000);
+  
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      // Admin: push on any input, including name, R1,R2,R3, heading
+      document.addEventListener('input', function(e){
+        try{
+          if(isAdminUnlocked()){
+            let target = e.target;
+            if(target && (target.classList.contains('name') || target.id === 'malsaramInput' || target.id === 'sthalamInput' || target.id === 'dateInput' || target.closest('td.rcell'))){
+              if(typeof pushLive === 'function') pushLive();
+              if(typeof backupData === 'function') backupData();
+            }
+          }
+        }catch(err){}
+      });
+      
+      // Also push on change
+      document.addEventListener('change', function(e){
+        try{
+          if(isAdminUnlocked() && typeof pushLive === 'function') pushLive();
+        }catch(err){}
+      });
+      
+      if(!isAdminUnlocked()){
+        console.log("Public mode - pulling every 1 sec");
+        pullLiveForPublic();
+        setInterval(pullLiveForPublic, 1000);
+      } else {
+        console.log("Admin mode - pushing on input");
+        setTimeout(pushLive, 500);
+      }
+    }, 1000);
+  });
+  
+  // Override save to always push
+  try{
+    let origSave = window.save;
+    if(typeof origSave === 'function'){
+      window.save = function(){
+        try{ origSave(); }catch(e){}
+        if(isAdminUnlocked() && typeof pushLive === 'function'){
+          setTimeout(pushLive, 100);
+        }
+      };
+    }
+  }catch(e){}
+  
+  // Override backupData to push
+  try{
+    let origBackup = window.backupData;
+    if(typeof origBackup === 'function'){
+      window.backupData = function(){
+        try{ origBackup(); }catch(e){}
+        if(isAdminUnlocked() && typeof pushLive === 'function') pushLive();
+      };
+    }
+  }catch(e){}
+})();
 </script>
 
 </head><body>
