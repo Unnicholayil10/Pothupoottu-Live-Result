@@ -463,6 +463,14 @@ document.addEventListener('DOMContentLoaded', function(){
 
 </div>
 
+
+<div id="headingBar" style="width:200mm;max-width:200mm;min-width:200mm;margin:4px auto;background:#fff;border:2px solid #7a1f1f;border-radius:8px;padding:6px;display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+  <input id="malsaramInput" class="meta-input" placeholder="മത്സരം - ഉദാ: പോത്ത്പൂട്ട്" style="flex:2;min-width:120px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
+  <input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം" style="flex:1;min-width:80px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
+  <input id="dateInput" class="meta-input" type="date" style="flex:1;min-width:90px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
+</div>
+<div id="publicMetaDisplay" style="width:200mm;max-width:200mm;min-width:200mm;margin:6px auto;text-align:center;padding:12px;background:#fff3e0;border:3px solid #b71c1c;border-radius:10px;font-weight:900;color:#b71c1c;font-size:16px;white-space:pre-wrap;word-break:break-word;display:block;">🔴 LIVE - Loading heading...</div>
+
 <div class="controls" style="display:flex;flex-wrap:nowrap;gap:2mm;align-items:center;justify-content:space-between;width:200mm;max-width:200mm;min-width:200mm;margin:2mm auto;padding:3mm 2mm;background:#ffffff;border:1mm solid #7a1f1f;border-radius:2mm">
 <button type="button" onclick="createNewCompetition();return false;" style="background:#2196f3;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">പുതിയ മത്സരം</button>
 <button type="button" onclick="deleteCompetition();return false;" style="background:#1976d2;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">Delete</button>
@@ -2110,177 +2118,172 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
-// === FINAL UNIFIED FIX - Heading 100% Public ===
+// === ULTIMATE FIX V2 - Guaranteed public heading ===
 (function(){
-  const CANONICAL_BUCKET = 'PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE';
-  const OLD_BUCKET = 'UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE';
-  const KVDB_LIVE_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/live';
-  const KVDB_DATA_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/data';
-  const KVDB_COMPS_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/comps';
-
-  function ensurePublicDisplay(){
-    let el = document.getElementById('publicMetaDisplay');
-    if(!el){
-      el = document.createElement('div');
-      el.id = 'publicMetaDisplay';
-      el.style.cssText = 'text-align:center;padding:10px;background:#fff3e0;border:2px solid #7a1f1f;border-radius:8px;margin:8px auto;font-weight:900;color:#3e2723;font-size:15px;width:200mm;max-width:200mm;min-width:200mm;white-space:pre-wrap;word-break:break-word;';
-      let ref = document.querySelector('.controls') || document.querySelector('.table-wrap');
-      if(ref && ref.parentNode) ref.parentNode.insertBefore(el, ref);
-    }
-    return el;
+  const FB_URL = 'https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json';
+  
+  function getInputs(){
+    return {
+      mal: document.getElementById('malsaramInput'),
+      sth: document.getElementById('sthalamInput'),
+      dt: document.getElementById('dateInput'),
+      display: document.getElementById('publicMetaDisplay')
+    };
   }
 
-  // Unified push - ALWAYS include heading
-  window.pushLive = async function(){
+  window.pushLiveFinal = async function(){
     try{
-      if(typeof isAdminUnlocked === 'function' && !isAdminUnlocked()) return;
+      let {mal, sth, dt} = getInputs();
       let cur = window.competitions?.find(c=>c.id==window.currentId);
-      if(!cur) return;
-      // Take latest from inputs
-      try{
-        let mal = document.getElementById('malsaramInput')?.value || cur.malsaram || '';
-        let sth = document.getElementById('sthalamInput')?.value || cur.sthalam || '';
-        let dt = document.getElementById('dateInput')?.value || cur.date || '';
-        cur.malsaram = mal; cur.sthalam = sth; cur.date = dt;
-        cur.data = (typeof deepClone==='function') ? deepClone(window.data) : JSON.parse(JSON.stringify(window.data));
-      }catch(e){}
-
-      let livePayload = JSON.stringify({
-        currentId: window.currentId,
-        malsaram: cur.malsaram||'',
-        sthalam: cur.sthalam||'',
-        date: cur.date||'',
-        compName: cur.name||cur.malsaram||'',
-        ts: Date.now()
-      });
-      let dataPayload = JSON.stringify({
-        currentId: window.currentId,
-        data: window.data,
-        ts: Date.now()
-      });
-
-      // Push to canonical bucket (this is what public reads)
-      fetch(KVDB_LIVE_CANON, {method:'POST', body: livePayload}).catch(()=>{});
-      fetch(KVDB_DATA_CANON, {method:'POST', body: dataPayload}).catch(()=>{});
-      fetch(KVDB_COMPS_CANON, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      let malsaram = mal?.value || cur?.malsaram || localStorage.getItem('kaalapoottu_malsaram') || '';
+      let sthalam = sth?.value || cur?.sthalam || localStorage.getItem('kaalapoottu_sthalam') || '';
+      let date = dt?.value || cur?.date || localStorage.getItem('kaalapoottu_date') || '';
       
-      // Also push to old bucket for backward compat
+      // Update cur
+      if(cur){
+        cur.malsaram = malsaram; cur.sthalam = sthalam; cur.date = date;
+        cur.data = window.data;
+      }
+      // Local save
       try{
-        fetch('https://kvdb.io/'+OLD_BUCKET+'/live', {method:'POST', body: livePayload}).catch(()=>{});
-        fetch('https://kvdb.io/'+OLD_BUCKET+'/data', {method:'POST', body: dataPayload}).catch(()=>{});
+        localStorage.setItem('kaalapoottu_malsaram', malsaram);
+        localStorage.setItem('kaalapoottu_sthalam', sthalam);
+        localStorage.setItem('kaalapoottu_date', date);
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
       }catch(e){}
 
-      console.log('✅ LIVE pushed - heading:', cur.malsaram, cur.sthalam, cur.date);
-      let badge = document.getElementById('liveStatus') || document.getElementById('liveBadge');
-      if(badge) badge.textContent = '🔴 LIVE - '+ (cur.malsaram||'Live') +' - '+new Date().toLocaleTimeString();
-    }catch(e){ console.error('pushLive final error', e); }
+      let payload = {
+        v2: window.data,
+        malsaram: malsaram,
+        sthalam: sthalam,
+        date: date,
+        currentId: window.currentId,
+        ts: Date.now()
+      };
+
+      // Push to Firebase (primary - this is what public reads)
+      try{
+        await fetch(FB_URL, {method:'PUT', body: JSON.stringify(payload)});
+        console.log('Firebase heading pushed', malsaram);
+      }catch(e){ console.error('FB push fail', e); }
+
+      // Also push to KVDB as backup
+      try{
+        fetch('https://kvdb.io/PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE/live', {method:'POST', body: JSON.stringify(payload)}).catch(()=>{});
+        fetch('https://kvdb.io/UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE/live', {method:'POST', body: JSON.stringify(payload)}).catch(()=>{});
+      }catch(e){}
+
+      updateDisplay(malsaram, sthalam, date);
+    }catch(e){ console.error('pushLiveFinal err', e); }
   };
 
-  // Unified pull - ALWAYS update heading display
-  window.pullLive = async function(){
+  function updateDisplay(mal, sth, date){
+    let {display} = getInputs();
+    if(!display) return;
+    let txt = `${mal||''} ${sth ? '('+sth+')' : ''} ${date||''}`.trim();
+    if(txt){
+      display.textContent = '📍 ' + txt + ' - LIVE';
+      display.style.display = 'block';
+      display.style.background = '#c8e6c9';
+      display.style.borderColor = '#1b5e20';
+      display.style.color = '#1b5e20';
+    } else {
+      display.textContent = '🔴 LIVE Result - Heading will appear here';
+      display.style.display = 'block';
+    }
+  }
+
+  window.pullLiveFinal = async function(){
     try{
-      if(typeof isAdminUnlocked === 'function' && isAdminUnlocked()) return;
-      let display = ensurePublicDisplay();
-      
-      // Try canonical first
-      try{
-        let r = await fetch(KVDB_LIVE_CANON);
-        if(r.ok){
-          let t = await r.text();
-          if(t){
-            let live = JSON.parse(t);
-            if(live){
-              // Update heading anywhere
-              if(live.malsaram!==undefined || live.sthalam!==undefined || live.date!==undefined){
-                let cur = window.competitions?.find(c=>c.id==window.currentId) || window.competitions?.[0];
-                if(cur){
-                  if(live.malsaram!==undefined) cur.malsaram = live.malsaram;
-                  if(live.sthalam!==undefined) cur.sthalam = live.sthalam;
-                  if(live.date!==undefined) cur.date = live.date;
-                  try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
-                }
-                // Update inputs (visible even if disabled)
-                let mi = document.getElementById('malsaramInput');
-                let si = document.getElementById('sthalamInput');
-                let di = document.getElementById('dateInput');
-                if(mi && live.malsaram!==undefined) mi.value = live.malsaram;
-                if(si && live.sthalam!==undefined) si.value = live.sthalam;
-                if(di && live.date!==undefined) di.value = live.date;
+      let {mal, sth, dt, display} = getInputs();
+      let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
+      if(isAdmin) return; // admin doesn't pull
 
-                // Public banner
-                let txt = `${live.malsaram||''} ${live.sthalam ? '('+live.sthalam+')' : ''} ${live.date||''}`.trim();
-                if(txt){
-                  display.textContent = '📍 ' + txt + ' - LIVE';
-                  display.style.display='block';
-                }
-                if(typeof syncBothPlaces==='function') syncBothPlaces();
-              }
-              // Handle competition switch
-              if(live.currentId && live.currentId != window.currentId){
-                try{
-                  let cr = await fetch(KVDB_COMPS_CANON);
-                  if(cr.ok){
-                    let ct = await cr.text();
-                    if(ct){ 
-                      let nc = JSON.parse(ct);
-                      if(nc && nc.length>0){ window.competitions = nc; }
-                    }
-                  }
-                }catch(e){}
-                let newC = window.competitions?.find(c=>c.id==live.currentId);
-                if(newC){
-                  window.currentId = live.currentId;
-                  window.data = (typeof deepClone==='function') ? deepClone(newC.data) : JSON.parse(JSON.stringify(newC.data));
-                  if(typeof render==='function') render();
-                }
-              }
-            }
-          }
-        }
-      }catch(e){ console.log('pullLive live fetch err', e); }
+      let r = await fetch(FB_URL + '?t=' + Date.now(), {cache:'no-store'});
+      if(!r.ok) return;
+      let d = await r.json();
+      if(!d) return;
 
-      // Fetch scores
-      try{
-        let dr = await fetch(KVDB_DATA_CANON);
-        if(dr.ok){
-          let dtxt = await dr.text();
-          if(dtxt){
-            let d = JSON.parse(dtxt);
-            if(d && d.currentId==window.currentId && d.data){
-              if(JSON.stringify(d.data) !== JSON.stringify(window.data)){
-                window.data = (typeof deepClone==='function') ? deepClone(d.data) : d.data;
-                let cur = window.competitions?.find(c=>c.id==window.currentId);
-                if(cur) cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
-                if(typeof render==='function') render();
-              }
-            }
-          }
+      // If data newer
+      if(d.v2 && JSON.stringify(d.v2) !== JSON.stringify(window.data)){
+        window.data = d.v2;
+        let cur = window.competitions?.find(c=>c.id==window.currentId);
+        if(cur) cur.data = d.v2;
+        try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(d.v2)); }catch(e){}
+        if(typeof render === 'function') render();
+      }
+
+      // ALWAYS update heading, even if data same
+      if(d.malsaram!==undefined || d.sthalam!==undefined || d.date!==undefined){
+        let cur = window.competitions?.find(c=>c.id==window.currentId);
+        if(cur){
+          if(d.malsaram!==undefined) cur.malsaram = d.malsaram;
+          if(d.sthalam!==undefined) cur.sthalam = d.sthalam;
+          if(d.date!==undefined) cur.date = d.date;
         }
-      }catch(e){}
-    }catch(e){ console.error('pullLive final error', e); }
+        if(mal && d.malsaram!==undefined) mal.value = d.malsaram;
+        if(sth && d.sthalam!==undefined) sth.value = d.sthalam;
+        if(dt && d.date!==undefined) dt.value = d.date;
+        
+        try{
+          if(d.malsaram!==undefined) localStorage.setItem('kaalapoottu_malsaram', d.malsaram);
+          if(d.sthalam!==undefined) localStorage.setItem('kaalapoottu_sthalam', d.sthalam);
+          if(d.date!==undefined) localStorage.setItem('kaalapoottu_date', d.date);
+          localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        }catch(e){}
+        
+        updateDisplay(d.malsaram||'', d.sthalam||'', d.date||'');
+        if(typeof syncBothPlaces === 'function') try{ syncBothPlaces(); }catch(e){}
+      }
+    }catch(e){ console.log('pullLiveFinal err', e); }
   };
 
-  // Force heading inputs to push live on typing
   document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=>{
-      ensurePublicDisplay();
-      ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-        let el = document.getElementById(id);
-        if(el){
-          el.addEventListener('input', ()=>{ if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) setTimeout(()=>window.pushLive(), 400); });
-          el.addEventListener('change', ()=>{ if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) setTimeout(()=>window.pushLive(), 400); });
-        }
+      let {mal, sth, dt} = getInputs();
+      // Load from localStorage initially
+      try{
+        if(mal && !mal.value) mal.value = localStorage.getItem('kaalapoottu_malsaram') || '';
+        if(sth && !sth.value) sth.value = localStorage.getItem('kaalapoottu_sthalam') || '';
+        if(dt && !dt.value) dt.value = localStorage.getItem('kaalapoottu_date') || '';
+        updateDisplay(mal?.value||'', sth?.value||'', dt?.value||'');
+      }catch(e){}
+
+      // Admin typing -> push
+      [mal, sth, dt].forEach(el=>{
+        if(!el) return;
+        el.addEventListener('input', ()=>{
+          let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
+          if(isAdmin) setTimeout(()=>window.pushLiveFinal(), 500);
+        });
+        el.addEventListener('change', ()=>{
+          let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
+          if(isAdmin) setTimeout(()=>window.pushLiveFinal(), 500);
+        });
       });
-      // Start unified interval - clear old intervals by overriding
+
+      // Interval: admin push, viewer pull
       setInterval(()=>{
-        if(typeof isAdminUnlocked==='function'){
-          if(isAdminUnlocked()) window.pushLive();
-          else window.pullLive();
-        }
-      }, 2500);
-      console.log('✅ FINAL FIX INSTALLED - Single bucket, heading 100% public');
-    }, 1000);
+        let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
+        if(isAdmin) window.pushLiveFinal();
+        else window.pullLiveFinal();
+      }, 3000);
+
+      // Initial pull for viewers
+      let isAdminNow = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
+      if(!isAdminNow) window.pullLiveFinal();
+
+      console.log('✅ ULTIMATE FIX V2 INSTALLED - heading 100% public via Firebase');
+    }, 1200);
   });
+
+  // Override old pushLive to call new one
+  let origPush = window.pushLive;
+  window.pushLive = function(){ 
+    try{ if(origPush) origPush(); }catch(e){}
+    window.pushLiveFinal();
+  };
 })();
 </script>
 
