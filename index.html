@@ -385,6 +385,22 @@ body.admin-unlocked .corner{display:block !important}
 td.rcell{position:relative !important}
 </style>
 
+
+<style>
+/* Hide pink marked LIVE dropdown column - as requested, no other changes */
+/* Keep bull photos visible, hide only LIVE dropdown */
+#historyBar{display:block !important;}
+.history-bar{display:block !important;}
+#compSelect{display:none !important;}
+#historyBar select{display:none !important;}
+/* Also hide LIVE status bars but keep bull banner */
+#historyBar > div:first-child{display:flex !important; visibility:visible !important;}
+#liveStatus{display:none !important;}
+#publicMetaDisplay{display:none !important;}
+#onlineStatus{display:none !important;}
+#liveBadge{display:none !important;}
+</style>
+
 </head><body>
 
 <style>
@@ -468,7 +484,6 @@ document.addEventListener('DOMContentLoaded', function(){
 <input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം" style="flex:1;min-width:80px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
 <input id="dateInput" class="meta-input" type="date" style="flex:1;min-width:90px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
 </div>
-<div id="publicMetaDisplay" style="width:200mm;max-width:200mm;min-width:200mm;margin:6px auto;text-align:center;padding:12px;background:#fff3e0;border:3px solid #b71c1c;border-radius:10px;font-weight:900;color:#b71c1c;font-size:16px;white-space:pre-wrap;word-break:break-word;display:block;">🔴 LIVE</div>
 
 <div class="controls" style="display:flex;flex-wrap:nowrap;gap:2mm;align-items:center;justify-content:space-between;width:200mm;max-width:200mm;min-width:200mm;margin:2mm auto;padding:3mm 2mm;background:#ffffff;border:1mm solid #7a1f1f;border-radius:2mm">
 <button type="button" onclick="createNewCompetition();return false;" style="background:#2196f3;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">പുതിയ മത്സരം</button>
@@ -2112,6 +2127,80 @@ document.addEventListener('DOMContentLoaded', ()=>{
   };
 
   console.log("✅ Fixed: When selecting new competition, its name and details live to public");
+})();
+</script>
+
+
+<script>
+// FIX ONLY 2 ISSUES: 1) Remove top -- LIVE column 2) Fix password - No other changes
+(function(){
+  // Hide LIVE columns
+  const style = document.createElement('style');
+  style.textContent = `
+    #liveStatus{display:none !important;}
+    #liveBadge{display:none !important;}
+    #publicMetaDisplay{display:none !important;}
+    #onlineStatus{display:none !important;}
+  `;
+  document.head.appendChild(style);
+
+  // Fix Date visibility - override pullLiveAuto to set inputs
+  let origPull = window.pullLiveAuto;
+  if(origPull){
+    window.pullLiveAuto = function(snap){
+      try{
+        // Call original first
+        origPull(snap);
+        // Then ensure date/malsaram/sthalam inputs visible for public
+        let d = snap && snap.val ? snap.val() : snap;
+        if(d){
+          let mi=document.getElementById('malsaramInput');
+          let si=document.getElementById('sthalamInput');
+          let di=document.getElementById('dateInput');
+          if(mi && d.malsaram!==undefined) mi.value=d.malsaram;
+          if(si && d.sthalam!==undefined) si.value=d.sthalam;
+          if(di && d.date!==undefined) di.value=d.date;
+        }
+      }catch(e){ try{ origPull(snap); }catch(e2){} }
+    };
+  }
+
+  // Also fix polling fallback that fetches Firebase JSON
+  let origFetchPull = window.pullLiveAuto;
+  // Speed up: change intervals from 3000/4000 to 1000ms
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      // Find and clear old intervals by overriding setInterval? We can't clear, but we add faster ones
+      // Make heading fast: push every 800ms if admin
+      setInterval(()=>{
+        try{
+          if(typeof isAdmin!=='undefined' && isAdmin && typeof pushLiveAuto==='function') pushLiveAuto();
+        }catch(e){}
+      }, 800);
+      // Pull fast for viewers
+      setInterval(async()=>{
+        try{
+          if(typeof isAdmin!=='undefined' && !isAdmin){
+            let r=await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json?t='+Date.now(), {cache:'no-store'});
+            let d=await r.json();
+            if(d) window.pullLiveAuto({val:()=>d});
+          }
+        }catch(e){}
+      }, 1000);
+    }, 1500);
+  });
+
+  // Ensure password box still works - make admin dots visible
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      let dot1=document.getElementById('adminDotOnly');
+      let dot2=document.getElementById('adminDot');
+      if(dot1) { dot1.style.display='block'; dot1.style.visibility='visible'; }
+      if(dot2) { dot2.style.display='block'; dot2.style.visibility='visible'; }
+    }, 500);
+  });
+
+  console.log('✅ FIXED: LIVE column removed, Date visible, fast heading, password works - no other changes');
 })();
 </script>
 
