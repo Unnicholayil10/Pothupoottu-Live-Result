@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', function(){
   <input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം" style="flex:1;min-width:80px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
   <input id="dateInput" class="meta-input" type="date" style="flex:1;min-width:90px;font-weight:900;border:2px solid #7a1f1f;padding:8px;" />
 </div>
-<div id="publicMetaDisplay" style="width:200mm;max-width:200mm;min-width:200mm;margin:6px auto;text-align:center;padding:12px;background:#fff3e0;border:3px solid #b71c1c;border-radius:10px;font-weight:900;color:#b71c1c;font-size:16px;white-space:pre-wrap;word-break:break-word;display:block;">🔴 LIVE - Loading heading...</div>
+<div id="publicMetaDisplay" style="width:200mm;max-width:200mm;min-width:200mm;margin:6px auto;text-align:center;padding:12px;background:#fff3e0;border:3px solid #b71c1c;border-radius:10px;font-weight:900;color:#b71c1c;font-size:16px;white-space:pre-wrap;word-break:break-word;display:block;">🔴 LIVE Loading...</div>
 
 <div class="controls" style="display:flex;flex-wrap:nowrap;gap:2mm;align-items:center;justify-content:space-between;width:200mm;max-width:200mm;min-width:200mm;margin:2mm auto;padding:3mm 2mm;background:#ffffff;border:1mm solid #7a1f1f;border-radius:2mm">
 <button type="button" onclick="createNewCompetition();return false;" style="background:#2196f3;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">പുതിയ മത്സരം</button>
@@ -2118,172 +2118,217 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <script>
-// === ULTIMATE FIX V2 - Guaranteed public heading ===
+// === CLEAN SINGLE LIVE SYSTEM - Heading + Score 100% Public ===
 (function(){
+  // Disable all old KVDB intervals by overriding fetch for kvdb? No, just override pushLive/pullLive to NO-OP for KVDB
   const FB_URL = 'https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json';
   
-  function getInputs(){
+  // Stop old Firebase SDK listeners if any
+  try{
+    if(typeof firebase !== 'undefined' && firebase.database){
+      try{ firebase.database().ref('kaalapoottu_live').off(); }catch(e){}
+      try{ firebase.database().ref('kaalapoottu/live_2024').off(); }catch(e){}
+    }
+  }catch(e){}
+
+  function isAdminNow(){
+    if(typeof window.isAdmin !== 'undefined' && window.isAdmin) return true;
+    if(typeof isAdminUnlocked === 'function' && isAdminUnlocked()) return true;
+    if(typeof window.isAdminUnlocked === 'function' && window.isAdminUnlocked()) return true;
+    return false;
+  }
+
+  function getPayload(){
+    let mal = document.getElementById('malsaramInput')?.value || '';
+    let sth = document.getElementById('sthalamInput')?.value || '';
+    let dt = document.getElementById('dateInput')?.value || '';
+    // Fallback to localStorage if inputs empty (for migration)
+    if(!mal) mal = localStorage.getItem('kaalapoottu_malsaram') || '';
+    if(!sth) sth = localStorage.getItem('kaalapoottu_sthalam') || '';
+    if(!dt) dt = localStorage.getItem('kaalapoottu_date') || '';
+    
+    // Ensure competitions updated
+    try{
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(cur){
+        if(mal) cur.malsaram = mal;
+        if(sth) cur.sthalam = sth;
+        if(dt) cur.date = dt;
+        cur.data = JSON.parse(JSON.stringify(window.data));
+      }
+    }catch(e){}
+
     return {
-      mal: document.getElementById('malsaramInput'),
-      sth: document.getElementById('sthalamInput'),
-      dt: document.getElementById('dateInput'),
-      display: document.getElementById('publicMetaDisplay')
+      v2: window.data,
+      malsaram: mal,
+      sthalam: sth,
+      date: dt,
+      currentId: window.currentId,
+      comps: window.competitions,
+      ts: Date.now()
     };
   }
 
-  window.pushLiveFinal = async function(){
-    try{
-      let {mal, sth, dt} = getInputs();
-      let cur = window.competitions?.find(c=>c.id==window.currentId);
-      let malsaram = mal?.value || cur?.malsaram || localStorage.getItem('kaalapoottu_malsaram') || '';
-      let sthalam = sth?.value || cur?.sthalam || localStorage.getItem('kaalapoottu_sthalam') || '';
-      let date = dt?.value || cur?.date || localStorage.getItem('kaalapoottu_date') || '';
-      
-      // Update cur
-      if(cur){
-        cur.malsaram = malsaram; cur.sthalam = sthalam; cur.date = date;
-        cur.data = window.data;
-      }
-      // Local save
-      try{
-        localStorage.setItem('kaalapoottu_malsaram', malsaram);
-        localStorage.setItem('kaalapoottu_sthalam', sthalam);
-        localStorage.setItem('kaalapoottu_date', date);
-        localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
-        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
-      }catch(e){}
-
-      let payload = {
-        v2: window.data,
-        malsaram: malsaram,
-        sthalam: sthalam,
-        date: date,
-        currentId: window.currentId,
-        ts: Date.now()
-      };
-
-      // Push to Firebase (primary - this is what public reads)
-      try{
-        await fetch(FB_URL, {method:'PUT', body: JSON.stringify(payload)});
-        console.log('Firebase heading pushed', malsaram);
-      }catch(e){ console.error('FB push fail', e); }
-
-      // Also push to KVDB as backup
-      try{
-        fetch('https://kvdb.io/PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE/live', {method:'POST', body: JSON.stringify(payload)}).catch(()=>{});
-        fetch('https://kvdb.io/UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE/live', {method:'POST', body: JSON.stringify(payload)}).catch(()=>{});
-      }catch(e){}
-
-      updateDisplay(malsaram, sthalam, date);
-    }catch(e){ console.error('pushLiveFinal err', e); }
-  };
-
-  function updateDisplay(mal, sth, date){
-    let {display} = getInputs();
-    if(!display) return;
-    let txt = `${mal||''} ${sth ? '('+sth+')' : ''} ${date||''}`.trim();
+  function updatePublicDisplay(mal, sth, dt){
+    let disp = document.getElementById('publicMetaDisplay');
+    if(!disp) return;
+    let txt = `${mal||''} ${sth ? '('+sth+')' : ''} ${dt||''}`.trim();
     if(txt){
-      display.textContent = '📍 ' + txt + ' - LIVE';
-      display.style.display = 'block';
-      display.style.background = '#c8e6c9';
-      display.style.borderColor = '#1b5e20';
-      display.style.color = '#1b5e20';
-    } else {
-      display.textContent = '🔴 LIVE Result - Heading will appear here';
-      display.style.display = 'block';
+      disp.textContent = '📍 ' + txt + ' - LIVE';
+      disp.style.display = 'block';
+      disp.style.background = '#c8e6c9';
+      disp.style.borderColor = '#1b5e20';
+      disp.style.color = '#1b5e20';
     }
   }
 
-  window.pullLiveFinal = async function(){
+  // Single push function - used for BOTH heading and score
+  window.pushLiveUnified = async function(){
+    if(!isAdminNow()) return;
     try{
-      let {mal, sth, dt, display} = getInputs();
-      let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
-      if(isAdmin) return; // admin doesn't pull
+      let payload = getPayload();
+      // Save locally
+      try{
+        localStorage.setItem('kaalapoottu_malsaram', payload.malsaram);
+        localStorage.setItem('kaalapoottu_sthalam', payload.sthalam);
+        localStorage.setItem('kaalapoottu_date', payload.date);
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(payload.v2));
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(payload.comps));
+      }catch(e){}
 
+      await fetch(FB_URL, {method:'PUT', body: JSON.stringify(payload)});
+      console.log('✅ Unified PUSH - heading:', payload.malsaram, 'score count:', payload.v2?.length);
+      updatePublicDisplay(payload.malsaram, payload.sthalam, payload.date);
+      
+      let badge = document.getElementById('liveBadge');
+      if(badge) badge.textContent = '🔴 LIVE PUSHED ' + new Date().toLocaleTimeString();
+    }catch(e){ console.error('pushLiveUnified error', e); }
+  };
+
+  // Single pull function
+  window.pullLiveUnified = async function(){
+    if(isAdminNow()) return;
+    try{
       let r = await fetch(FB_URL + '?t=' + Date.now(), {cache:'no-store'});
       if(!r.ok) return;
       let d = await r.json();
       if(!d) return;
 
-      // If data newer
+      let changed = false;
+      // Score update
       if(d.v2 && JSON.stringify(d.v2) !== JSON.stringify(window.data)){
-        window.data = d.v2;
+        window.data = JSON.parse(JSON.stringify(d.v2));
         let cur = window.competitions?.find(c=>c.id==window.currentId);
-        if(cur) cur.data = d.v2;
-        try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(d.v2)); }catch(e){}
-        if(typeof render === 'function') render();
-      }
-
-      // ALWAYS update heading, even if data same
-      if(d.malsaram!==undefined || d.sthalam!==undefined || d.date!==undefined){
-        let cur = window.competitions?.find(c=>c.id==window.currentId);
-        if(cur){
-          if(d.malsaram!==undefined) cur.malsaram = d.malsaram;
-          if(d.sthalam!==undefined) cur.sthalam = d.sthalam;
-          if(d.date!==undefined) cur.date = d.date;
+        if(cur) cur.data = JSON.parse(JSON.stringify(d.v2));
+        else if(d.comps){
+          window.competitions = d.comps;
+          let nc = window.competitions.find(c=>c.id==d.currentId);
+          if(nc){ window.currentId = d.currentId; window.data = JSON.parse(JSON.stringify(nc.data)); }
         }
-        if(mal && d.malsaram!==undefined) mal.value = d.malsaram;
-        if(sth && d.sthalam!==undefined) sth.value = d.sthalam;
-        if(dt && d.date!==undefined) dt.value = d.date;
-        
+        try{ localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data)); }catch(e){}
+        changed = true;
+      }
+      // Competition list update (for new competitions)
+      if(d.comps && d.comps.length !== window.competitions?.length){
+        // Merge if newer
+        if(d.ts && d.ts > (window.competitions[0]?.ts||0)){
+          window.competitions = d.comps;
+          try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+          if(typeof renderCompSelect === 'function') renderCompSelect();
+          changed = true;
+        }
+      }
+      // Heading update - ALWAYS
+      if(d.malsaram!==undefined || d.sthalam!==undefined || d.date!==undefined){
+        let malInp = document.getElementById('malsaramInput');
+        let sthInp = document.getElementById('sthalamInput');
+        let dtInp = document.getElementById('dateInput');
+        if(malInp && d.malsaram!==undefined) malInp.value = d.malsaram;
+        if(sthInp && d.sthalam!==undefined) sthInp.value = d.sthalam;
+        if(dtInp && d.date!==undefined) dtInp.value = d.date;
         try{
           if(d.malsaram!==undefined) localStorage.setItem('kaalapoottu_malsaram', d.malsaram);
           if(d.sthalam!==undefined) localStorage.setItem('kaalapoottu_sthalam', d.sthalam);
           if(d.date!==undefined) localStorage.setItem('kaalapoottu_date', d.date);
-          localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
         }catch(e){}
-        
-        updateDisplay(d.malsaram||'', d.sthalam||'', d.date||'');
+        updatePublicDisplay(d.malsaram||'', d.sthalam||'', d.date||'');
         if(typeof syncBothPlaces === 'function') try{ syncBothPlaces(); }catch(e){}
       }
-    }catch(e){ console.log('pullLiveFinal err', e); }
+
+      if(changed && typeof render === 'function') render();
+
+    }catch(e){ console.log('pullLiveUnified err', e); }
   };
 
+  // Override all old pushLive variants to call unified
+  window.pushLive = window.pushLiveUnified;
+  window.pushLiveAuto = window.pushLiveUnified;
+  window.pullLive = window.pullLiveUnified;
+  window.pullLiveAuto = window.pullLiveUnified;
+
+  // Hook save() to push unified immediately when score changes
   document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(()=>{
-      let {mal, sth, dt} = getInputs();
-      // Load from localStorage initially
+      // Initial display from localStorage
+      let mal = document.getElementById('malsaramInput');
+      let sth = document.getElementById('sthalamInput');
+      let dt = document.getElementById('dateInput');
       try{
         if(mal && !mal.value) mal.value = localStorage.getItem('kaalapoottu_malsaram') || '';
         if(sth && !sth.value) sth.value = localStorage.getItem('kaalapoottu_sthalam') || '';
         if(dt && !dt.value) dt.value = localStorage.getItem('kaalapoottu_date') || '';
-        updateDisplay(mal?.value||'', sth?.value||'', dt?.value||'');
+        updatePublicDisplay(mal?.value||'', sth?.value||'', dt?.value||'');
       }catch(e){}
 
-      // Admin typing -> push
+      // Heading inputs -> push
       [mal, sth, dt].forEach(el=>{
         if(!el) return;
-        el.addEventListener('input', ()=>{
-          let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
-          if(isAdmin) setTimeout(()=>window.pushLiveFinal(), 500);
-        });
-        el.addEventListener('change', ()=>{
-          let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
-          if(isAdmin) setTimeout(()=>window.pushLiveFinal(), 500);
-        });
+        el.addEventListener('input', ()=>{ if(isAdminNow()) { clearTimeout(window._pushDebounce); window._pushDebounce = setTimeout(()=>window.pushLiveUnified(), 600); } });
+        el.addEventListener('change', ()=>{ if(isAdminNow()) window.pushLiveUnified(); });
       });
 
-      // Interval: admin push, viewer pull
+      // Override render to hook score inputs after each render
+      let origRender = window.render;
+      if(origRender){
+        window.render = function(){
+          origRender();
+          // Attach push to all score inputs
+          setTimeout(()=>{
+            document.querySelectorAll('#tbody input').forEach(inp=>{
+              if(inp._liveHooked) return;
+              inp._liveHooked = true;
+              inp.addEventListener('input', ()=>{
+                if(isAdminNow()){
+                  clearTimeout(window._pushDebounce);
+                  window._pushDebounce = setTimeout(()=>window.pushLiveUnified(), 700);
+                }
+              });
+              inp.addEventListener('change', ()=>{
+                if(isAdminNow()) window.pushLiveUnified();
+              });
+            });
+          }, 300);
+        };
+        // Initial hook
+        setTimeout(()=>{ if(typeof render === 'function') render(); }, 500);
+      }
+
+      // Unified interval - 3 sec
       setInterval(()=>{
-        let isAdmin = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
-        if(isAdmin) window.pushLiveFinal();
-        else window.pullLiveFinal();
+        if(isAdminNow()) window.pushLiveUnified();
+        else window.pullLiveUnified();
       }, 3000);
 
       // Initial pull for viewers
-      let isAdminNow = (typeof window.isAdmin !== 'undefined' && window.isAdmin) || (typeof isAdminUnlocked === 'function' && isAdminUnlocked());
-      if(!isAdminNow) window.pullLiveFinal();
+      if(!isAdminNow()){
+        window.pullLiveUnified();
+        setTimeout(()=>window.pullLiveUnified(), 1500);
+      }
 
-      console.log('✅ ULTIMATE FIX V2 INSTALLED - heading 100% public via Firebase');
-    }, 1200);
+      console.log('✅ CLEAN LIVE SYSTEM INSTALLED - heading + score both public');
+    }, 1000);
   });
 
-  // Override old pushLive to call new one
-  let origPush = window.pushLive;
-  window.pushLive = function(){ 
-    try{ if(origPush) origPush(); }catch(e){}
-    window.pushLiveFinal();
-  };
 })();
 </script>
 
