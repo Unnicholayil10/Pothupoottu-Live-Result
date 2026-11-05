@@ -436,7 +436,11 @@ document.addEventListener('DOMContentLoaded', function(){
 <span id="liveBadge" class="live-badge">🔒 LOCKED</span>
 </div>
 </div>
-<div id="statusBar" class="status locked">🔒 Locked</div>
+<div class="pinkbar" style="background:#ffcdd2;color:#b71c1c;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;width:200mm;max-width:200mm;min-width:200mm;font-weight:900;font-size:11px;border-radius:0 0 6px 6px">
+<span>Created by : Unnicholayil</span>
+<span class="center" id="lockStatus">🔒 Locked</span>
+<span>Contact : 9447 748220</span>
+</div>
 
 <div class="admin-dot" id="adminDot" onclick="showPwdBox()">• • • admin - ക്ലിക്ക് ചെയ്യുക</div>
 
@@ -456,22 +460,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 <select id="compSelect" onchange="switchCompetition(this.value)"></select>
-<div class="history-btns">
-<button class="btn-new" onclick="createNewCompetition()">➕ പുതിയ മത്സരം</button>
-<button class="btn-new" style="background:#ff9800;color:#000" onclick="renameCompetition()">✏️ പേര് മാറ്റുക</button>
-<button class="btn-delete" onclick="deleteCompetition()">🗑️ Delete</button>
-<button onclick="clearCurrent()" style="background:#ff5252;color:#fff;border:2px solid #000;padding:6px 10px;border-radius:5px;font-weight:900;cursor:pointer;font-size:10px">🗑️ Clear</button>
-</div>
+
 </div>
 
-<div class="controls">
-<button class="btn btn-add" onclick="addRow()">+ പേര്</button>
-<!-- Clear All button disabled as per user request -->
-<button class="btn btn-remove" onclick="removeRow()">- പേര്</button>
-<button class="btn" onclick="clearAll()" style="background:#ff5252;color:#fff;border:2px solid #7a1f1f;border-radius:6px;padding:6px 10px;font-weight:900;margin-left:8px" title="Data Clear">🗑️ Data Clear</button>
-<input id="malsaramInput" class="meta-input" placeholder="മത്സരം :" disabled onchange="try{localStorage.setItem('kaalapoottu_malsaram',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.malsaram=this.value; saveCompetitions();}catch(e){}">
-<input id="sthalamInput" class="meta-input" placeholder="സ്ഥലം :" disabled onchange="try{localStorage.setItem('kaalapoottu_sthalam',this.value); let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions(); renderCompSelect();}catch(e){}" oninput="try{let cur=competitions.find(c=>c.id==currentId); if(cur) cur.sthalam=this.value; saveCompetitions();}catch(e){}">
-<input id="dateInput" class="meta-input" type="date" disabled onchange="handleDateChange(this.value)" oninput="handleDateChange(this.value)">
+<div class="controls" style="display:flex;flex-wrap:nowrap;gap:2mm;align-items:center;justify-content:space-between;width:200mm;max-width:200mm;min-width:200mm;margin:2mm auto;padding:3mm 2mm;background:#ffffff;border:1mm solid #7a1f1f;border-radius:2mm">
+<button type="button" onclick="createNewCompetition();return false;" style="background:#2196f3;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">പുതിയ മത്സരം</button>
+<button type="button" onclick="deleteCompetition();return false;" style="background:#1976d2;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">Delete</button>
+<button type="button" onclick="clearAll();return false;" title="Data Clear" style="background:#616161;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">DataClear</button>
+<button type="button" onclick="addRow();return false;" style="background:#2e7d32;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">+ പേര്</button>
+<button type="button" onclick="removeRow();return false;" style="background:#ef6c00;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">- പേര്</button>
+<button type="button" onclick="restoreFromBackup();return false;" style="background:#7b1fa2;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">Restore</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -1366,10 +1364,10 @@ function syncBothPlaces(){
     let inputs = document.querySelectorAll('input');
     for(let i=0;i<inputs.length;i++){
       let inp = inputs[i];
-      if(i==0 || inp.id=='malsaramInput'){
+      if(inp.id=='malsaramInput'){
         if(inp.value != cur.malsaram) inp.value = cur.malsaram;
       }
-      if(i==1 || inp.id=='sthalamInput'){
+      if(inp.id=='sthalamInput'){
         if(inp.value != cur.sthalam) inp.value = cur.sthalam;
       }
       if(inp.type=='date'){
@@ -1897,6 +1895,216 @@ document.addEventListener('DOMContentLoaded', ()=>{
       console.log("Heading live fix installed - KVDB bucket:", BUCKET);
     }, 1000);
   });
+})();
+</script>
+
+
+<script>
+// FIXES: 1. Heading not in No1, 2. Public sees heading, 3. Created by Contact visible
+(function(){
+  // Fix syncBothPlaces - remove i==0 bug
+  if(window.syncBothPlaces){
+    window.syncBothPlaces = function(){
+      try{
+        let cur = competitions.find(c=>c.id==currentId);
+        if(!cur){ cur = competitions[0]; if(cur){ currentId = cur.id; data = JSON.parse(JSON.stringify(cur.data)); } }
+        if(!cur) return;
+        let inputs = document.querySelectorAll('.meta-input');
+        for(let i=0;i<inputs.length;i++){
+          let inp = inputs[i];
+          if(inp.id=='malsaramInput' && inp.value != cur.malsaram) inp.value = cur.malsaram;
+          if(inp.id=='sthalamInput' && inp.value != cur.sthalam) inp.value = cur.sthalam;
+          if(inp.id=='dateInput' && inp.value != cur.date) inp.value = cur.date;
+        }
+      }catch(e){}
+    };
+  }
+  // Public heading visible
+  let origPull = window.pullLiveAuto;
+  if(origPull){
+    window.pullLiveAuto = function(snap){
+      try{ origPull(snap); }catch(e){}
+      setTimeout(function(){
+        try{
+          let mal = localStorage.getItem('kaalapoottu_malsaram') || '';
+          let sth = localStorage.getItem('kaalapoottu_sthalam') || '';
+          let malInp = document.getElementById('malsaramInput');
+          let sthInp = document.getElementById('sthalamInput');
+          if(malInp) malInp.value = mal;
+          if(sthInp) sthInp.value = sth;
+        }catch(e){}
+      },300);
+    };
+  }
+  console.log("✅ Fixed: Heading not in No1, Public visible, Created by Contact visible");
+})();
+</script>
+
+
+<script>
+// FIX ONLY Restore Button - No other changes
+(function(){
+  // Ensure backup system exists
+  window.saveBackup = window.saveBackup || function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      let cur = {
+        time: new Date().toLocaleString(),
+        data: JSON.parse(JSON.stringify(data)),
+        comps: JSON.parse(JSON.stringify(competitions)),
+        malsaram: document.getElementById('malsaramInput')?.value || '',
+        sthalam: document.getElementById('sthalamInput')?.value || '',
+        date: document.getElementById('dateInput')?.value || ''
+      };
+      backups.unshift(cur);
+      if(backups.length > 10) backups = backups.slice(0,10);
+      localStorage.setItem('kaalapoottu_backups', JSON.stringify(backups));
+      console.log('Backup saved', cur.time);
+    }catch(e){ console.error('Backup save failed', e); }
+  };
+
+  // Auto backup every 30 sec
+  if(!window._backupInterval){
+    window._backupInterval = setInterval(function(){ try{ saveBackup(); }catch(e){} }, 30000);
+  }
+
+  // Restore function - FIXED
+  window.restoreFromBackup = function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(!backups || backups.length==0){
+        alert('Backup ഇല്ല - No backup found');
+        return;
+      }
+      // Show list
+      let msg = 'Backups:\n';
+      for(let i=0;i<backups.length;i++){
+        msg += (i+1) + '. ' + backups[i].time + ' - ' + (backups[i].malsaram||'No heading') + '\n';
+      }
+      msg += '\nWhich backup to restore? Enter number (1-' + backups.length + '):';
+      let choice = prompt(msg, '1');
+      if(!choice) return;
+      let idx = parseInt(choice)-1;
+      if(isNaN(idx) || idx<0 || idx>=backups.length){
+        alert('Invalid number');
+        return;
+      }
+      let b = backups[idx];
+      if(!confirm('Restore backup from ' + b.time + '? Current data will be replaced.')){
+        return;
+      }
+      // Restore
+      data = JSON.parse(JSON.stringify(b.data));
+      if(b.comps) competitions = JSON.parse(JSON.stringify(b.comps));
+      localStorage.setItem('kaalapoottu_v2', JSON.stringify(data));
+      if(b.malsaram) localStorage.setItem('kaalapoottu_malsaram', b.malsaram);
+      if(b.sthalam) localStorage.setItem('kaalapoottu_sthalam', b.sthalam);
+      if(b.date) localStorage.setItem('kaalapoottu_date', b.date);
+      
+      // Update inputs
+      let malInp = document.getElementById('malsaramInput');
+      let sthInp = document.getElementById('sthalamInput');
+      let dateInp = document.getElementById('dateInput');
+      if(malInp) malInp.value = b.malsaram || '';
+      if(sthInp) sthInp.value = b.sthalam || '';
+      if(dateInp) dateInp.value = b.date || '';
+      
+      // Save and render
+      if(typeof save === 'function') save();
+      if(typeof render === 'function') render();
+      if(typeof syncBothPlaces === 'function') syncBothPlaces();
+      
+      alert('✅ Restored from ' + b.time);
+      location.reload();
+    }catch(e){
+      console.error('Restore failed', e);
+      alert('Restore failed: ' + e.message);
+    }
+  };
+
+  console.log("✅ Restore button fixed - No other changes");
+})();
+</script>
+
+
+<script>
+// FIX: When selecting new competition, its name and details live to public
+(function(){
+  // Override competition selection to push heading live
+  let origLoad = window.loadCompetition || window.selectCompetition || window.changeCompetition;
+  
+  // Find the select element
+  let compSelect = document.getElementById('competitionSelect') || document.querySelector('select');
+  
+  if(compSelect){
+    let origOnChange = compSelect.onchange;
+    compSelect.addEventListener('change', function(){
+      setTimeout(function(){
+        try{
+          let cur = competitions.find(c=>c.id==currentId);
+          if(!cur) cur = competitions[0];
+          if(cur){
+            // Update heading inputs with selected competition details
+            let malInp = document.getElementById('malsaramInput');
+            let sthInp = document.getElementById('sthalamInput');
+            let dateInp = document.getElementById('dateInput');
+            if(malInp) malInp.value = cur.malsaram || '';
+            if(sthInp) sthInp.value = cur.sthalam || '';
+            if(dateInp) dateInp.value = cur.date || '';
+            
+            // Save to localStorage for public pull
+            localStorage.setItem('kaalapoottu_malsaram', cur.malsaram || '');
+            localStorage.setItem('kaalapoottu_sthalam', cur.sthalam || '');
+            localStorage.setItem('kaalapoottu_date', cur.date || '');
+            localStorage.setItem('kaalapoottu_v2', JSON.stringify(cur.data || data));
+            
+            // Push live to public - heading + details
+            if(typeof pushLive === 'function'){
+              pushLive();
+            }
+            // Also push to KVDB directly for public
+            try{
+              fetch('https://kvdb.io/PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE/live', {
+                method: 'POST',
+                body: JSON.stringify({
+                  v2: cur.data || data,
+                  malsaram: cur.malsaram || '',
+                  sthalam: cur.sthalam || '',
+                  date: cur.date || '',
+                  compName: cur.name || cur.malsaram || '',
+                  time: Date.now()
+                })
+              });
+            }catch(e){}
+          }
+        }catch(e){ console.error('Comp select live push failed', e); }
+      }, 500);
+    });
+  }
+
+  // Also override the function that loads competition
+  window.selectCompetition = window.selectCompetition || function(id){
+    try{
+      currentId = id;
+      let cur = competitions.find(c=>c.id==id);
+      if(cur){
+        data = JSON.parse(JSON.stringify(cur.data));
+        // Update inputs
+        let malInp = document.getElementById('malsaramInput');
+        if(malInp) malInp.value = cur.malsaram || '';
+        let sthInp = document.getElementById('sthalamInput');
+        if(sthInp) sthInp.value = cur.sthalam || '';
+        let dateInp = document.getElementById('dateInput');
+        if(dateInp) dateInp.value = cur.date || '';
+        
+        if(typeof render === 'function') render();
+        if(typeof save === 'function') save();
+        if(typeof pushLive === 'function') setTimeout(pushLive, 300);
+      }
+    }catch(e){}
+  };
+
+  console.log("✅ Fixed: When selecting new competition, its name and details live to public");
 })();
 </script>
 
