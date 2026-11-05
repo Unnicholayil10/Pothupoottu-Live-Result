@@ -2108,4 +2108,180 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script>
+// === FINAL UNIFIED FIX - Heading 100% Public ===
+(function(){
+  const CANONICAL_BUCKET = 'PothpoottuLive2026_v19_8buttons_open_44_empty_LIVE';
+  const OLD_BUCKET = 'UnniCholayilPothpoottuLive2026_V19_8BUTTONS_OPEN_44_EMPTY_LIVE';
+  const KVDB_LIVE_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/live';
+  const KVDB_DATA_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/data';
+  const KVDB_COMPS_CANON = 'https://kvdb.io/' + CANONICAL_BUCKET + '/comps';
+
+  function ensurePublicDisplay(){
+    let el = document.getElementById('publicMetaDisplay');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'publicMetaDisplay';
+      el.style.cssText = 'text-align:center;padding:10px;background:#fff3e0;border:2px solid #7a1f1f;border-radius:8px;margin:8px auto;font-weight:900;color:#3e2723;font-size:15px;width:200mm;max-width:200mm;min-width:200mm;white-space:pre-wrap;word-break:break-word;';
+      let ref = document.querySelector('.controls') || document.querySelector('.table-wrap');
+      if(ref && ref.parentNode) ref.parentNode.insertBefore(el, ref);
+    }
+    return el;
+  }
+
+  // Unified push - ALWAYS include heading
+  window.pushLive = async function(){
+    try{
+      if(typeof isAdminUnlocked === 'function' && !isAdminUnlocked()) return;
+      let cur = window.competitions?.find(c=>c.id==window.currentId);
+      if(!cur) return;
+      // Take latest from inputs
+      try{
+        let mal = document.getElementById('malsaramInput')?.value || cur.malsaram || '';
+        let sth = document.getElementById('sthalamInput')?.value || cur.sthalam || '';
+        let dt = document.getElementById('dateInput')?.value || cur.date || '';
+        cur.malsaram = mal; cur.sthalam = sth; cur.date = dt;
+        cur.data = (typeof deepClone==='function') ? deepClone(window.data) : JSON.parse(JSON.stringify(window.data));
+      }catch(e){}
+
+      let livePayload = JSON.stringify({
+        currentId: window.currentId,
+        malsaram: cur.malsaram||'',
+        sthalam: cur.sthalam||'',
+        date: cur.date||'',
+        compName: cur.name||cur.malsaram||'',
+        ts: Date.now()
+      });
+      let dataPayload = JSON.stringify({
+        currentId: window.currentId,
+        data: window.data,
+        ts: Date.now()
+      });
+
+      // Push to canonical bucket (this is what public reads)
+      fetch(KVDB_LIVE_CANON, {method:'POST', body: livePayload}).catch(()=>{});
+      fetch(KVDB_DATA_CANON, {method:'POST', body: dataPayload}).catch(()=>{});
+      fetch(KVDB_COMPS_CANON, {method:'POST', body: JSON.stringify(window.competitions)}).catch(()=>{});
+      
+      // Also push to old bucket for backward compat
+      try{
+        fetch('https://kvdb.io/'+OLD_BUCKET+'/live', {method:'POST', body: livePayload}).catch(()=>{});
+        fetch('https://kvdb.io/'+OLD_BUCKET+'/data', {method:'POST', body: dataPayload}).catch(()=>{});
+      }catch(e){}
+
+      console.log('✅ LIVE pushed - heading:', cur.malsaram, cur.sthalam, cur.date);
+      let badge = document.getElementById('liveStatus') || document.getElementById('liveBadge');
+      if(badge) badge.textContent = '🔴 LIVE - '+ (cur.malsaram||'Live') +' - '+new Date().toLocaleTimeString();
+    }catch(e){ console.error('pushLive final error', e); }
+  };
+
+  // Unified pull - ALWAYS update heading display
+  window.pullLive = async function(){
+    try{
+      if(typeof isAdminUnlocked === 'function' && isAdminUnlocked()) return;
+      let display = ensurePublicDisplay();
+      
+      // Try canonical first
+      try{
+        let r = await fetch(KVDB_LIVE_CANON);
+        if(r.ok){
+          let t = await r.text();
+          if(t){
+            let live = JSON.parse(t);
+            if(live){
+              // Update heading anywhere
+              if(live.malsaram!==undefined || live.sthalam!==undefined || live.date!==undefined){
+                let cur = window.competitions?.find(c=>c.id==window.currentId) || window.competitions?.[0];
+                if(cur){
+                  if(live.malsaram!==undefined) cur.malsaram = live.malsaram;
+                  if(live.sthalam!==undefined) cur.sthalam = live.sthalam;
+                  if(live.date!==undefined) cur.date = live.date;
+                  try{ localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions)); }catch(e){}
+                }
+                // Update inputs (visible even if disabled)
+                let mi = document.getElementById('malsaramInput');
+                let si = document.getElementById('sthalamInput');
+                let di = document.getElementById('dateInput');
+                if(mi && live.malsaram!==undefined) mi.value = live.malsaram;
+                if(si && live.sthalam!==undefined) si.value = live.sthalam;
+                if(di && live.date!==undefined) di.value = live.date;
+
+                // Public banner
+                let txt = `${live.malsaram||''} ${live.sthalam ? '('+live.sthalam+')' : ''} ${live.date||''}`.trim();
+                if(txt){
+                  display.textContent = '📍 ' + txt + ' - LIVE';
+                  display.style.display='block';
+                }
+                if(typeof syncBothPlaces==='function') syncBothPlaces();
+              }
+              // Handle competition switch
+              if(live.currentId && live.currentId != window.currentId){
+                try{
+                  let cr = await fetch(KVDB_COMPS_CANON);
+                  if(cr.ok){
+                    let ct = await cr.text();
+                    if(ct){ 
+                      let nc = JSON.parse(ct);
+                      if(nc && nc.length>0){ window.competitions = nc; }
+                    }
+                  }
+                }catch(e){}
+                let newC = window.competitions?.find(c=>c.id==live.currentId);
+                if(newC){
+                  window.currentId = live.currentId;
+                  window.data = (typeof deepClone==='function') ? deepClone(newC.data) : JSON.parse(JSON.stringify(newC.data));
+                  if(typeof render==='function') render();
+                }
+              }
+            }
+          }
+        }
+      }catch(e){ console.log('pullLive live fetch err', e); }
+
+      // Fetch scores
+      try{
+        let dr = await fetch(KVDB_DATA_CANON);
+        if(dr.ok){
+          let dtxt = await dr.text();
+          if(dtxt){
+            let d = JSON.parse(dtxt);
+            if(d && d.currentId==window.currentId && d.data){
+              if(JSON.stringify(d.data) !== JSON.stringify(window.data)){
+                window.data = (typeof deepClone==='function') ? deepClone(d.data) : d.data;
+                let cur = window.competitions?.find(c=>c.id==window.currentId);
+                if(cur) cur.data = (typeof deepClone==='function') ? deepClone(window.data) : window.data;
+                if(typeof render==='function') render();
+              }
+            }
+          }
+        }
+      }catch(e){}
+    }catch(e){ console.error('pullLive final error', e); }
+  };
+
+  // Force heading inputs to push live on typing
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      ensurePublicDisplay();
+      ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
+        let el = document.getElementById(id);
+        if(el){
+          el.addEventListener('input', ()=>{ if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) setTimeout(()=>window.pushLive(), 400); });
+          el.addEventListener('change', ()=>{ if(typeof isAdminUnlocked==='function' && isAdminUnlocked()) setTimeout(()=>window.pushLive(), 400); });
+        }
+      });
+      // Start unified interval - clear old intervals by overriding
+      setInterval(()=>{
+        if(typeof isAdminUnlocked==='function'){
+          if(isAdminUnlocked()) window.pushLive();
+          else window.pullLive();
+        }
+      }, 2500);
+      console.log('✅ FINAL FIX INSTALLED - Single bucket, heading 100% public');
+    }, 1000);
+  });
+})();
+</script>
+
 </body></html>
