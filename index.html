@@ -577,7 +577,7 @@ function toggleLock(){
    badge.textContent="🔒 LOCKED"; badge.style.background="#ff5252"; badge.style.color="#fff";
    render(); try{lockMetaInputs();}catch(e){} return;
  }
- if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
+ if(["achu@0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
    isAdmin=true;
    btn.textContent="🔓 Locked"; btn.className="btn btn-unlock";
    status.textContent="✅ Unlocked"; status.className="status unlocked";
@@ -1299,7 +1299,7 @@ function clearCurrent(){
 
 function getAdminName(pwd){
  let p=pwd.toLowerCase();
- if(p=="unni0264") return "Unni";
+ if(p=="achu@0264") return "Unni";
  if(p=="irfan2026") return "Irfa";
  if(p=="shuh2026") return "Shuhaib";
  return "Admin";
@@ -1328,7 +1328,7 @@ function toggleLock(){
   let ad=document.getElementById("adminDot"); if(ad) ad.style.display="block";
   render(); try{loadMetaDate();}catch(e){} try{lockMetaInputs();}catch(e){} return;
  }
- if(["unni0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
+ if(["achu@0264","irfan2026","shuh2026"].includes(pwd.toLowerCase())){
   isAdmin=true;
   let adminName=getAdminName(pwd);
   if(btn){ btn.textContent="🔓 Locked"; btn.className="btn btn-unlock"; }
@@ -2231,6 +2231,132 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 
   console.log('✅ FIXED: LIVE column removed, Date visible, fast heading, password works - no other changes');
+})();
+</script>
+
+
+<script>
+// VIEWER COUNT - Per Competition - Same person counted once per competition
+(function(){
+  function getCurrentCompId(){
+    try{ return window.currentId || localStorage.getItem('pothpoottu_currentId') || 'live'; }catch(e){ return 'live'; }
+  }
+
+  // 1. Increment - per competition, once per session per competition
+  function tryIncrement(){
+    try{
+      let compId = getCurrentCompId();
+      let key = 'pothpoottu_viewed_' + compId;
+      if(sessionStorage.getItem(key)) return; // Already counted for this competition in this session
+      sessionStorage.setItem(key,'1');
+      // Also check localStorage to avoid double counting on refresh in same competition
+      let localKey = 'pothpoottu_viewed_local_' + compId;
+      // If already counted in localStorage for this comp, don't increment again until new comp
+      // But we still want to count if they come for new comp - so localKey includes compId
+      if(localStorage.getItem(localKey)) return;
+      localStorage.setItem(localKey, '1');
+      // Increment Firebase count for this competition
+      let url = 'https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_' + compId + '.json';
+      fetch(url).then(r=>r.json()).then(cnt=>{
+        let newCnt = (cnt||0)+1;
+        fetch(url, {method:'PUT', body: JSON.stringify(newCnt)});
+        // Also update total
+        fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_total.json')
+          .then(r=>r.json()).then(total=>{
+            fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_total.json', {method:'PUT', body: JSON.stringify((total||0)+1)});
+          }).catch(()=>{});
+      }).catch(()=>{});
+    }catch(e){}
+  }
+
+  // Run on load and when competition changes
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(tryIncrement, 1000);
+    // When admin switches to new competition, reset local flag for old? No - new comp has new ID, so auto counted
+    let origSwitch = window.switchCompetition;
+    if(origSwitch){
+      window.switchCompetition = function(id){
+        origSwitch(id);
+        setTimeout(tryIncrement, 1000);
+      };
+    }
+  });
+
+  // 2. Show count only to Admin - per current competition
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      let badge = document.getElementById('viewerCountBadge');
+      if(!badge){
+        badge = document.createElement('div');
+        badge.id='viewerCountBadge';
+        badge.style.cssText='width:200mm;max-width:200mm;margin:2px auto;text-align:center;background:#e3f2fd;color:#1565c0;font-weight:900;font-size:11px;padding:4px;border-radius:4px;display:none;';
+        document.body.insertBefore(badge, document.querySelector('.table-wrap'));
+      }
+      async function updateCount(){
+        try{
+          let compId = getCurrentCompId();
+          let r=await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_'+compId+'.json?t='+Date.now(), {cache:'no-store'});
+          let cnt=await r.json();
+          if(typeof isAdmin!=='undefined' && isAdmin){
+            badge.style.display='block';
+            badge.textContent='👀 ഈ മത്സരം കണ്ടത്: '+(cnt||0)+' പേർ | Total: ';
+            // Fetch total also
+            try{
+              let rt=await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_total.json?t='+Date.now(), {cache:'no-store'});
+              let total=await rt.json();
+              badge.textContent+=' '+(total||0)+' പേർ';
+            }catch(e){}
+          } else {
+            badge.style.display='none';
+          }
+        }catch(e){}
+      }
+      updateCount();
+      setInterval(updateCount, 10000);
+      let origToggle = window.toggleLock;
+      if(origToggle){
+        window.toggleLock = function(){
+          origToggle();
+          setTimeout(updateCount, 500);
+        };
+      }
+    }, 1000);
+  });
+})();
+</script>
+
+
+<script>
+// Show Dropdown only for Admin - Public won't see pink column
+(function(){
+  function updateDropdownVisibility(){
+    try{
+      let sel = document.getElementById('compSelect');
+      let histBar = document.getElementById('historyBar');
+      if(!sel) return;
+      if(typeof isAdmin!=='undefined' && isAdmin){
+        sel.style.display='block';
+        sel.style.visibility='visible';
+        if(histBar) histBar.style.display='block';
+      } else {
+        sel.style.display='none';
+        sel.style.visibility='hidden';
+        // Keep bull photos visible, hide only dropdown
+        if(histBar) histBar.style.display='block';
+      }
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(updateDropdownVisibility, 800);
+    setInterval(updateDropdownVisibility, 1000);
+    let origToggle = window.toggleLock;
+    if(origToggle){
+      window.toggleLock = function(){
+        origToggle();
+        setTimeout(updateDropdownVisibility, 500);
+      };
+    }
+  });
 })();
 </script>
 
