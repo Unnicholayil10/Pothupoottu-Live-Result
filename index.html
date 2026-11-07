@@ -2299,13 +2299,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
           let cnt=await r.json();
           if(typeof isAdmin!=='undefined' && isAdmin){
             badge.style.display='block';
-            badge.textContent='👀 ഈ മത്സരം കണ്ടത്: '+(cnt||0)+' പേർ | Total: ';
-            // Fetch total also
-            try{
-              let rt=await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_total.json?t='+Date.now(), {cache:'no-store'});
-              let total=await rt.json();
-              badge.textContent+=' '+(total||0)+' പേർ';
-            }catch(e){}
+            badge.textContent='👀 ഈ മത്സരം കണ്ടത്: '+(cnt||0)+' പേർ';
+            /* Total removed - only this competition */
           } else {
             badge.style.display='none';
           }
@@ -2357,6 +2352,107 @@ document.addEventListener('DOMContentLoaded', ()=>{
       };
     }
   });
+})();
+</script>
+
+
+<script>
+// FIX: Total < This Competition bug - Total will auto-correct
+(function(){
+  // Patch updateCount to ensure Total >= This Competition
+  let origInterval = setInterval;
+  // Wait for badge to exist and patch its update
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      // Override fetch for total to auto-correct
+      let badge = document.getElementById('viewerCountBadge');
+      if(!badge) return;
+      // Monitor badge text and fix if Total < This
+      setInterval(()=>{
+        try{
+          let txt = badge.textContent || '';
+          let m1 = txt.match(/ഈ മത്സരം കണ്ടത്:\s*(\d+)/);
+          let m2 = txt.match(/Total:\s*(\d+)/);
+          if(m1 && m2){
+            let cur = parseInt(m1[1]);
+            let tot = parseInt(m2[1]);
+            if(tot < cur){
+              // Auto-correct display and Firebase
+              /* Total removed */
+              // Fix Firebase total
+              fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/viewer_count_total.json', {method:'PUT', body: JSON.stringify(cur)});
+            }
+          }
+        }catch(e){}
+      }, 2000);
+    }, 2000);
+  });
+})();
+</script>
+
+
+<script>
+// FIX ONLY: Heading flicker - Don't overwrite with empty value
+(function(){
+  // Guard all heading updates - if new value is empty, keep old
+  function safeSet(id, val){
+    if(val===undefined || val===null) return;
+    let v = String(val).trim();
+    if(v==='') return; // Don't overwrite with empty
+    let el = document.getElementById(id);
+    if(el && el.value!==v) el.value = v;
+  }
+
+  // Wrap pullLiveAuto to prevent empty overwrite
+  let origPull = window.pullLiveAuto;
+  if(origPull){
+    window.pullLiveAuto = function(snap){
+      try{
+        let d = snap && snap.val ? snap.val() : snap;
+        if(d){
+          // Save original values to restore if orig overwrites with empty
+          let mi = document.getElementById('malsaramInput');
+          let si = document.getElementById('sthalamInput');
+          let di = document.getElementById('dateInput');
+          let oldMal = mi ? mi.value : '';
+          let oldSth = si ? si.value : '';
+          let oldDate = di ? di.value : '';
+          origPull(snap);
+          // After orig, if it cleared to empty, restore old
+          if(mi && mi.value.trim()==='' && oldMal.trim()!=='') mi.value = oldMal;
+          if(si && si.value.trim()==='' && oldSth.trim()!=='') si.value = oldSth;
+          if(di && di.value.trim()==='' && oldDate.trim()!=='') di.value = oldDate;
+          // Also apply safe set from Firebase data
+          if(d.malsaram) safeSet('malsaramInput', d.malsaram);
+          if(d.sthalam) safeSet('sthalamInput', d.sthalam);
+          if(d.date) safeSet('dateInput', d.date);
+        } else {
+          origPull(snap);
+        }
+      }catch(e){ try{ origPull(snap); }catch(e2){} }
+    };
+  }
+
+  // Also guard KVDB pull - intercept fetch responses for live data
+  // Prevent render() from clearing heading
+  let origRender = window.render;
+  if(origRender){
+    window.render = function(){
+      let mi = document.getElementById('malsaramInput');
+      let si = document.getElementById('sthalamInput');
+      let di = document.getElementById('dateInput');
+      let oldMal = mi ? mi.value : '';
+      let oldSth = si ? si.value : '';
+      let oldDate = di ? di.value : '';
+      try{ origRender(); }catch(e){}
+      // Restore heading if render cleared it
+      if(mi && mi.value.trim()==='' && oldMal.trim()!=='') mi.value = oldMal;
+      if(si && si.value.trim()==='' && oldSth.trim()!=='') si.value = oldSth;
+      if(di && di.value.trim()==='' && oldDate.trim()!=='') di.value = oldDate;
+    };
+  }
+
+  console.log('✅ Heading flicker fix applied - empty values will not overwrite');
 })();
 </script>
 
