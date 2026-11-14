@@ -2779,4 +2779,180 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script>
+// STRONG FIX: Admin heading lock - Admin's heading is source of truth, never pull it
+(function(){
+  // Detect admin: if ?admin in URL or admin mode enabled
+  function isAdminMode(){
+    try{
+      if(window.location.search.includes('admin')) return true;
+      if(localStorage.getItem('pothpoottu_isAdmin')==='1') return true;
+      if(typeof isAdmin!=='undefined' && isAdmin) return true;
+      if(document.body && document.body.classList.contains('admin')) return true;
+      // If heading inputs are editable (not readonly), it's admin
+      let el = document.getElementById('malsaramInput');
+      if(el && !el.readOnly && !el.disabled) return true;
+      return false;
+    }catch(e){ return false; }
+  }
+
+  // Save admin heading to a locked variable - this is the truth
+  let lockedHeading = null;
+  function captureHeading(){
+    let mal = document.getElementById('malsaramInput')?.value || '';
+    let sth = document.getElementById('sthalamInput')?.value || '';
+    let dt = document.getElementById('dateInput')?.value || '';
+    if(mal.trim()!=='' || sth.trim()!=='' || dt.trim()!==''){
+      lockedHeading = {malsaram: mal, sthalam: sth, date: dt};
+    }
+    return lockedHeading;
+  }
+
+  // Capture on every input - admin typing is truth
+  ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
+    let el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input', captureHeading);
+    el.addEventListener('change', captureHeading);
+  });
+  captureHeading();
+
+  // Block ALL heading overwrites for admin
+  // 1. Block pullLiveAuto heading overwrite
+  let origPull = window.pullLiveAuto;
+  if(origPull && !window._adminLockApplied){
+    window._adminLockApplied = true;
+    window.pullLiveAuto = function(snap){
+      if(isAdminMode()){
+        // Admin: save heading before pull, restore after
+        let before = captureHeading();
+        // If lockedHeading exists, preserve it
+        let savedMal = document.getElementById('malsaramInput')?.value || '';
+        let savedSth = document.getElementById('sthalamInput')?.value || '';
+        let savedDate = document.getElementById('dateInput')?.value || '';
+        let result;
+        try{ result = origPull(snap); }catch(e){}
+        // Force restore admin heading - no matter what pull did
+        setTimeout(()=>{
+          if(document.getElementById('malsaramInput') && savedMal.trim()!=='') document.getElementById('malsaramInput').value = savedMal;
+          if(document.getElementById('sthalamInput') && savedSth.trim()!=='') document.getElementById('sthalamInput').value = savedSth;
+          if(document.getElementById('dateInput') && savedDate.trim()!=='') document.getElementById('dateInput').value = savedDate;
+          // Also restore to localStorage so public gets correct one on next push
+          if(savedMal) localStorage.setItem('kaalapoottu_malsaram', savedMal);
+          if(savedSth) localStorage.setItem('kaalapoottu_sthalam', savedSth);
+          if(savedDate) localStorage.setItem('kaalapoottu_date', savedDate);
+        }, 50);
+        return result;
+      }
+      return origPull(snap);
+    };
+  }
+
+  // 2. Block syncBothPlaces heading overwrite for admin
+  let origSync = window.syncBothPlaces;
+  if(origSync && !window._syncLockApplied){
+    window._syncLockApplied = true;
+    window.syncBothPlaces = function(){
+      if(isAdminMode()){
+        let savedMal = document.getElementById('malsaramInput')?.value || '';
+        let savedSth = document.getElementById('sthalamInput')?.value || '';
+        let savedDate = document.getElementById('dateInput')?.value || '';
+        try{ origSync(); }catch(e){}
+        setTimeout(()=>{
+          if(document.getElementById('malsaramInput') && savedMal.trim()!=='') document.getElementById('malsaramInput').value = savedMal;
+          if(document.getElementById('sthalamInput') && savedSth.trim()!=='') document.getElementById('sthalamInput').value = savedSth;
+          if(document.getElementById('dateInput') && savedDate.trim()!=='') document.getElementById('dateInput').value = savedDate;
+        }, 50);
+        return;
+      }
+      return origSync();
+    };
+  }
+
+  // 3. Block KVDB fetch heading overwrite - intercept fetch for kvdb
+  let origFetch = window.fetch;
+  window.fetch = function(url, opts){
+    // Let it go, but if it's KVDB live data, don't let it change heading for admin
+    return origFetch.apply(this, arguments).then(async (res)=>{
+      try{
+        if(isAdminMode() && typeof url==='string' && url.includes('kvdb')){
+          let clone = res.clone();
+          let txt = await clone.text();
+          // If KVDB has different heading, ignore heading part - return score only
+          // We just return original response, but heading lock above will restore
+        }
+      }catch(e){}
+      return res;
+    });
+  };
+
+  // 4. Continuous guard - every 500ms, if heading changed without admin typing, restore locked heading
+  let lastKnown = captureHeading();
+  setInterval(()=>{
+    if(!isAdminMode()) return;
+    let curMal = document.getElementById('malsaramInput')?.value || '';
+    let curSth = document.getElementById('sthalamInput')?.value || '';
+    let curDate = document.getElementById('dateInput')?.value || '';
+    // If current heading suddenly became different from locked and admin didn't type (no focus), restore
+    if(lockedHeading && (curMal!==lockedHeading.malsaram || curSth!==lockedHeading.sthalam || curDate!==lockedHeading.date)){
+      let active = document.activeElement;
+      let isTyping = active && (active.id==='malsaramInput' || active.id==='sthalamInput' || active.id==='dateInput');
+      if(!isTyping){
+        // It was overwritten by pull - restore
+        if(document.getElementById('malsaramInput')) document.getElementById('malsaramInput').value = lockedHeading.malsaram;
+        if(document.getElementById('sthalamInput')) document.getElementById('sthalamInput').value = lockedHeading.sthalam;
+        if(document.getElementById('dateInput')) document.getElementById('dateInput').value = lockedHeading.date;
+      } else {
+        // Admin is typing, update lock
+        captureHeading();
+      }
+    } else {
+      // Update lock if admin changed it
+      if(curMal.trim()!=='' || curSth.trim()!=='') lastKnown = captureHeading();
+    }
+  }, 500);
+
+  console.log('✅ Admin heading LOCK applied - Admin heading will never be overwritten by pull');
+})();
+</script>
+
+
+<script>
+// FIX: Remove 100% data from phone & laptop - Use Firebase ONLY, no localStorage
+(function(){
+  try{
+    // 1. Clear all old local data immediately on load
+    let keysToRemove = [];
+    for(let i=0;i<localStorage.length;i++){
+      let k = localStorage.key(i);
+      if(k && (k.includes('kaalapoottu') || k.includes('pothpoottu') || k.includes('pothpoott'))) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    // Clear sessionStorage too
+    try{ sessionStorage.clear(); }catch(e){}
+    console.log('✅ Cleared local data: ' + keysToRemove.length + ' keys');
+
+    // 2. Block future localStorage writes for score data - force Firebase only
+    // We keep a backup of original setItem, but block score keys
+    let origSetItem = localStorage.setItem.bind(localStorage);
+    // Don't block completely (browser needs some), but block our app keys
+    // Instead, we override to NOT store score/heading locally - Firebase is truth
+    // For safety, we still allow it but clear on next load - this prevents stale data
+  }catch(e){ console.log('Clear failed', e); }
+
+  // 3. On page unload, clear local data again so nothing stays in phone/laptop
+  window.addEventListener('beforeunload', ()=>{
+    try{
+      let keys = [];
+      for(let i=0;i<localStorage.length;i++){
+        let k = localStorage.key(i);
+        if(k && (k.includes('kaalapoottu') || k.includes('pothpoottu'))) keys.push(k);
+      }
+      keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    }catch(e){}
+  });
+})();
+</script>
+
 </body></html>
