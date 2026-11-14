@@ -2673,4 +2673,110 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script>
+// FIX ONLY: Heading flicker + Restore 10 copies - Both same reason
+(function(){
+  // 1) STOP KVDB fighting with Firebase - Firebase only
+  // KVDB pull was overwriting heading with old value every few seconds
+  // We block its heading overwrite by marking KVDB data as stale
+  window._useFirebaseOnly = true;
+
+  // 2) Don't overwrite heading while Admin is typing / focused
+  let headingFocused = false;
+  ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
+    let el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('focus', ()=>{ headingFocused = true; });
+    el.addEventListener('blur', ()=>{ setTimeout(()=>{ headingFocused = false; }, 1000); });
+    el.addEventListener('input', ()=>{ headingFocused = true; setTimeout(()=>{ headingFocused = false; }, 2000); });
+  });
+
+  // Guard pullLiveAuto again - if heading focused, don't overwrite heading
+  let origPull = window.pullLiveAuto;
+  if(origPull && !window._headingGuardApplied){
+    window._headingGuardApplied = true;
+    window.pullLiveAuto = function(snap){
+      if(window._restoring) return;
+      if(headingFocused){
+        // If admin is typing, skip heading update, only update score data
+        try{
+          let d = snap && snap.val ? snap.val() : snap;
+          if(d && d.v2){
+            // Only update score, not heading
+            let oldMal = document.getElementById('malsaramInput')?.value || '';
+            let oldSth = document.getElementById('sthalamInput')?.value || '';
+            let oldDate = document.getElementById('dateInput')?.value || '';
+            let r = origPull(snap);
+            // Restore admin typing
+            if(document.getElementById('malsaramInput')) document.getElementById('malsaramInput').value = oldMal;
+            if(document.getElementById('sthalamInput')) document.getElementById('sthalamInput').value = oldSth;
+            if(document.getElementById('dateInput')) document.getElementById('dateInput').value = oldDate;
+            return r;
+          }
+        }catch(e){}
+      }
+      return origPull(snap);
+    };
+  }
+
+  // 3) Restore: 1 backup per competition, not every 30 sec
+  // Old logic: every 30 sec a new backup -> today 10 copies
+  // New logic: same heading+date -> update same backup, don't add new
+  function dedupeBackups(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(backups.length<=1) return;
+      let seen = {};
+      let deduped = [];
+      // Keep only latest backup per date+malsaram
+      for(let b of backups){
+        let key = (b.date||'') + '|' + (b.malsaram||'') + '|' + (b.sthalam||'');
+        if(!seen[key]){
+          seen[key] = true;
+          deduped.push(b);
+        } else {
+          // Same competition - replace old with newer one (update in place)
+          let idx = deduped.findIndex(x=> (x.date||'')+'|'+(x.malsaram||'')+'|'+(x.sthalam||'')===key);
+          if(idx>=0) deduped[idx]=b;
+        }
+      }
+      // Keep only 18/10/2026, 01/11/2026 + 1 per future competition
+      // Filter to keep only those 2 + future (after 14/11/2026)
+      let kept = deduped.filter(b=>{
+        let t = (b.time||'')+' '+(b.date||'');
+        if(t.includes('18/10/2026')||t.includes('2026-10-18')) return true;
+        if(t.includes('01/11/2026')||t.includes('1/11/2026')||t.includes('2026-11-01')) return true;
+        try{ let d=new Date(b.time); if(!isNaN(d.getTime()) && d>=new Date('2026-11-14T00:00:00')) return true; }catch(e){}
+        if(b.ts && b.ts>=new Date('2026-11-14').getTime()) return true;
+        return false;
+      });
+      if(kept.length!==backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        console.log('Deduped backups: '+backups.length+' -> '+kept.length);
+      }
+    }catch(e){}
+  }
+  dedupeBackups();
+  setInterval(dedupeBackups, 5000);
+
+  // 4) Stop auto-backup every 30 sec creating duplicates - change to every 5 min and only if data changed
+  if(window._backupInterval){
+    clearInterval(window._backupInterval);
+    let lastDataStr = '';
+    window._backupInterval = setInterval(()=>{
+      try{
+        let curStr = JSON.stringify(window.data||{}) + '|' + (document.getElementById('malsaramInput')?.value||'') + '|' + (document.getElementById('dateInput')?.value||'');
+        if(curStr===lastDataStr) return; // No change, don't create new backup
+        lastDataStr = curStr;
+        if(typeof saveBackup==='function') saveBackup();
+        setTimeout(dedupeBackups, 500);
+      }catch(e){}
+    }, 300000); // 5 min, only if changed
+  }
+
+  console.log('✅ Heading flicker + Restore duplicate fix applied');
+})();
+</script>
+
 </body></html>
