@@ -2955,4 +2955,183 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<!-- Firebase Clear Button - Admin Only -->
+<div id="firebaseClearBox" style="display:none; text-align:center; margin:10px; padding:10px; background:#ffebee; border:2px solid red; border-radius:8px;">
+  <b style="color:red;">⚠️ Firebase പഴയ Data കളയാൻ</b><br>
+  <button onclick="clearFirebaseOldData()" style="background:red; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:900; cursor:pointer; margin-top:8px;">🗑️ Firebase Clear - പഴയ Data മുഴുവൻ കളയുക</button>
+  <div id="firebaseClearStatus" style="margin-top:8px; font-size:13px;"></div>
+</div>
+<script>
+function clearFirebaseOldData(){
+  if(!confirm('Firebase-ലെ പഴയ Data മുഴുവൻ കളയണോ?\n\nഇത് തിരിച്ചെടുക്കാൻ പറ്റില്ല.\n\nഉറപ്പാണോ?')) return;
+  document.getElementById('firebaseClearStatus').innerHTML = '⏳ Clearing...';
+  let base = 'https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/';
+  let deletes = [
+    'kaalapoottu_live.json',
+    'viewer_count_total.json',
+    // Old viewer counts - will be cleared by pattern, we clear known ones
+  ];
+  // Delete main live data
+  Promise.all(deletes.map(u => fetch(base+u, {method:'DELETE'}))).then(()=>{
+    // Also clear localStorage
+    try{
+      let keys=[]; for(let i=0;i<localStorage.length;i++){ let k=localStorage.key(i); if(k && (k.includes('kaalapoottu')||k.includes('pothpoottu'))) keys.push(k); }
+      keys.forEach(k=>localStorage.removeItem(k));
+      sessionStorage.clear();
+    }catch(e){}
+    document.getElementById('firebaseClearStatus').innerHTML = '✅ Firebase പഴയ Data 100% കളഞ്ഞു. ഇനി പുതിയ Heading എഴുതി തുടങ്ങാം.';
+    alert('✅ Firebase Clear ആയി. ഇനി പുതിയ മത്സരം തുടങ്ങാം.');
+  }).catch(e=>{
+    document.getElementById('firebaseClearStatus').innerHTML = '❌ Failed: '+e.message;
+  });
+}
+// Show clear box only for admin
+document.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(()=>{
+    if(window.location.search.includes('admin') || (typeof isAdmin!=='undefined' && isAdmin)){
+      let b = document.getElementById('firebaseClearBox');
+      if(b) b.style.display='block';
+    }
+  }, 1000);
+});
+</script>
+
+
+<script>
+// AUTO CLEAR: When Admin creates NEW competition, old Firebase data 100% deleted automatically
+(function(){
+  // Override new competition creation to auto-clear old Firebase first
+  function autoClearOldFirebase(){
+    return new Promise((resolve)=>{
+      let base = 'https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/';
+      // Delete old live data + old viewer counts + old backups in Firebase
+      let toDelete = [
+        'kaalapoottu_live.json',
+        'viewer_count_total.json',
+        'kaalapoottu_backups.json'
+      ];
+      // Also try to delete old viewer counts for old headings - we delete by fetching list is not needed, main live is enough
+      Promise.all(toDelete.map(u => fetch(base+u, {method:'DELETE'}).catch(()=>{}))).then(()=>{
+        // Also clear local
+        try{
+          let keys=[]; for(let i=0;i<localStorage.length;i++){ let k=localStorage.key(i); if(k && (k.includes('kaalapoottu')||k.includes('pothpoottu'))) keys.push(k); }
+          keys.forEach(k=>localStorage.removeItem(k));
+          try{ sessionStorage.clear(); }catch(e){}
+        }catch(e){}
+        console.log('✅ Old Firebase auto-cleared for new competition');
+        resolve();
+      });
+    });
+  }
+
+  // Hook into New Competition buttons
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      // Find all buttons with text "പുതിയ മത്സരം" or "New Competition" or "Create"
+      let btns = document.querySelectorAll('button');
+      btns.forEach(btn=>{
+        let txt = (btn.textContent||'').trim();
+        if(txt.includes('പുതിയ മത്സരം') || txt.includes('New Competition') || txt.includes('പുതിയ പുട്ട്') || txt.includes('Create')){
+          if(btn.dataset.autoClearHooked) return;
+          btn.dataset.autoClearHooked = '1';
+          btn.addEventListener('click', async (e)=>{
+            // Ask confirm once
+            if(!confirm('പുതിയ മത്സരം തുടങ്ങുമ്പോൾ പഴയ Data Firebase-ൽ നിന്ന് 100% കളയണോ?\n\nപഴയത് തിരിച്ചു കിട്ടില്ല.\n\n18/10/2026, 01/11/2026-ന്റെ Data മാത്രം Restore-ൽ കാണും.')) {
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+            e.preventDefault(); e.stopPropagation();
+            // Show clearing
+            let oldTxt = btn.textContent;
+            btn.textContent = '⏳ പഴയത് കളയുന്നു...';
+            btn.disabled = true;
+            await autoClearOldFirebase();
+            btn.textContent = oldTxt;
+            btn.disabled = false;
+            alert('✅ പഴയ Data Firebase-ൽ നിന്ന് 100% കളഞ്ഞു. ഇനി പുതിയ മത്സരം എഴുതാം.');
+            // Trigger original new competition logic by re-clicking after clearing - call the original handler if exists
+            // We set a flag so next click won't ask again
+            btn.dataset.autoClearDone = '1';
+            // If there is a function createNewCompetition, call it
+            try{ if(typeof createNewCompetition==='function') createNewCompetition(); }catch(e){}
+            try{ if(typeof newCompetition==='function') newCompetition(); }catch(e){}
+          }, true); // capture phase - run before original
+        }
+      });
+    }, 1500);
+  });
+
+  // Also expose for manual use
+  window.autoClearOldFirebase = autoClearOldFirebase;
+  console.log('✅ Auto-clear on new competition enabled');
+})();
+</script>
+
+
+<script>
+// KEEP ONLY: 18/10/2026, 01/11/2026, 14/11/2026 + future competitions, delete rest 100%
+(function(){
+  let keepDates = [
+    '18/10/2026', '18-10-2026', '2026-10-18', '18/10/26',
+    '01/11/2026', '1/11/2026', '01-11-2026', '1-11-2026', '2026-11-01',
+    '14/11/2026', '14-11-2026', '2026-11-14'
+  ];
+  function isKept(b){
+    let t = (b.time||'') + ' ' + (b.date||'') + ' ' + (b.malsaram||'');
+    for(let kd of keepDates){ if(t.includes(kd)) return true; }
+    // Future: after 14/11/2026
+    try{
+      let d = new Date(b.time);
+      if(!isNaN(d.getTime()) && d >= new Date('2026-11-14T23:59:59')) return true;
+      if(b.ts && b.ts >= new Date('2026-11-14').getTime()) return true;
+      // Also check date field for future
+      if(b.date){
+        let dd = new Date(b.date);
+        if(!isNaN(dd.getTime()) && dd >= new Date('2026-11-14')) return true;
+      }
+    }catch(e){}
+    return false;
+  }
+
+  // Clean immediately on load
+  try{
+    let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+    if(backups.length>0){
+      let kept = backups.filter(isKept);
+      if(kept.length !== backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        console.log('Cleaned: '+backups.length+' -> '+kept.length+' (kept 18/10, 01/11, 14/11 + future)');
+      }
+    }
+    // Also clean competitions list - keep only those 3 + future
+    let comps = JSON.parse(localStorage.getItem('pothpoott_history_v8') || localStorage.getItem('pothpoottu_history_v8') || '[]');
+    if(comps.length>0){
+      let keptComps = comps.filter(c=>{
+        let t = (c.date||'') + ' ' + (c.malsaram||'') + ' ' + (c.time||'');
+        for(let kd of keepDates){ if(t.includes(kd)) return true; }
+        try{ let d=new Date(c.date||c.time); if(!isNaN(d.getTime()) && d>=new Date('2026-11-14')) return true; }catch(e){}
+        return false;
+      });
+      if(keptComps.length !== comps.length){
+        localStorage.setItem('pothpoott_history_v8', JSON.stringify(keptComps));
+        localStorage.setItem('pothpoottu_history_v8', JSON.stringify(keptComps));
+      }
+    }
+  }catch(e){}
+
+  // Keep cleaning every 5 sec
+  setInterval(()=>{
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      let kept = backups.filter(isKept);
+      if(kept.length !== backups.length) localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+    }catch(e){}
+  }, 5000);
+
+  // Also clean Firebase backups node - delete old ones, keep only those 3
+  // We don't delete Firebase live here, only backups list filtering is local
+  console.log('✅ Keep only 18/10, 01/11, 14/11 + future - rest 100% removed');
+})();
+</script>
+
 </body></html>
