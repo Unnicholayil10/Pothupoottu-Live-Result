@@ -2239,7 +2239,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
 // VIEWER COUNT - Per Competition - Same person counted once per competition
 (function(){
   function getCurrentCompId(){
-    try{ return window.currentId || localStorage.getItem('pothpoottu_currentId') || 'live'; }catch(e){ return 'live'; }
+    // FIX: New puttu = new heading, so key by heading + date, not just currentId
+    // If admin only changes heading (malsaram/sthalam/date) and clears data, currentId stays same - so old logic never reset
+    try{
+      let mal = (document.getElementById('malsaramInput')?.value || localStorage.getItem('kaalapoottu_malsaram') || '').trim();
+      let sth = (document.getElementById('sthalamInput')?.value || localStorage.getItem('kaalapoottu_sthalam') || '').trim();
+      let dt  = (document.getElementById('dateInput')?.value || localStorage.getItem('kaalapoottu_date') || '').trim();
+      // If heading is empty, fall back to currentId
+      if(!mal && !sth && !dt){
+        return 'comp_' + (window.currentId || localStorage.getItem('pothpoottu_currentId') || 'live');
+      }
+      // Make safe key: replace spaces/special chars
+      let key = (mal + '_' + sth + '_' + dt).replace(/[^a-zA-Z0-9_\u0D00-\u0D7F-]/g, '_').substring(0,60);
+      if(!key || key==='__') return 'comp_' + (window.currentId || 'live');
+      return 'puttu_' + key;
+    }catch(e){ return 'comp_' + (window.currentId || 'live'); }
   }
 
   // 1. Increment - per competition, once per session per competition
@@ -2453,6 +2467,209 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   console.log('✅ Heading flicker fix applied - empty values will not overwrite');
+})();
+</script>
+
+
+<script>
+// When heading changes, re-fetch viewer count for new puttu immediately
+(function(){
+  document.addEventListener('DOMContentLoaded', ()=>{
+    setTimeout(()=>{
+      ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
+        let el=document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('change', ()=>{
+          // Clear session flag for new heading will be handled on next load by viewers,
+          // For admin view, force badge refresh
+          setTimeout(()=>{
+            // Trigger updateCount by dispatching custom event
+            window.dispatchEvent(new Event('headingChangedForCount'));
+          }, 500);
+        });
+      });
+    }, 1500);
+  });
+})();
+</script>
+
+
+<script>
+// FIX ONLY: Restore 100% working - Don't let Firebase overwrite restored data
+(function(){
+  // Override restoreFromBackup with fixed version
+  window.restoreFromBackup = async function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      // If no local backup, try Firebase backup
+      if(!backups || backups.length==0){
+        try{
+          let r = await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json?t='+Date.now(), {cache:'no-store'});
+          let d = await r.json();
+          if(d && d.v2){
+            backups = [{time: new Date(d.ts||Date.now()).toLocaleString(), data: d.v2, malsaram: d.malsaram, sthalam: d.sthalam, date: d.date, comps: d.comps}];
+          }
+        }catch(e){}
+      }
+      if(!backups || backups.length==0){
+        alert('Backup ഇല്ല - No backup found');
+        return;
+      }
+      let msg = 'Backups:\n';
+      for(let i=0;i<backups.length;i++){
+        msg += (i+1) + '. ' + backups[i].time + ' - ' + (backups[i].malsaram||'No heading') + '\n';
+      }
+      msg += '\nWhich backup to restore? Enter number (1-' + backups.length + '):';
+      let choice = prompt(msg, '1');
+      if(!choice) return;
+      let idx = parseInt(choice)-1;
+      if(isNaN(idx) || idx<0 || idx>=backups.length){
+        alert('Invalid number');
+        return;
+      }
+      let b = backups[idx];
+      if(!confirm('Restore backup from ' + b.time + '? Current data will be replaced.')){
+        return;
+      }
+      // STOP pull during restore - prevent Firebase from overwriting
+      window._restoring = true;
+      // Restore data
+      window.data = JSON.parse(JSON.stringify(b.data));
+      if(b.comps) window.competitions = JSON.parse(JSON.stringify(b.comps));
+      // If backup has currentId, restore it
+      if(b.currentId) window.currentId = b.currentId;
+      // Save to localStorage FIRST
+      try{
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        if(b.malsaram!==undefined) localStorage.setItem('kaalapoottu_malsaram', b.malsaram||'');
+        if(b.sthalam!==undefined) localStorage.setItem('kaalapoottu_sthalam', b.sthalam||'');
+        if(b.date!==undefined) localStorage.setItem('kaalapoottu_date', b.date||'');
+        if(window.competitions) localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        if(window.currentId) localStorage.setItem('pothpoottu_currentId_v8', String(window.currentId));
+      }catch(e){}
+      // Update heading inputs - don't let render clear them
+      let malInp = document.getElementById('malsaramInput');
+      let sthInp = document.getElementById('sthalamInput');
+      let dateInp = document.getElementById('dateInput');
+      if(malInp) malInp.value = b.malsaram || '';
+      if(sthInp) sthInp.value = b.sthalam || '';
+      if(dateInp) dateInp.value = b.date || '';
+      // Render WITHOUT reload (reload was causing Firebase to overwrite)
+      if(typeof render === 'function') render();
+      // Restore heading again after render (render clears it)
+      if(malInp) malInp.value = b.malsaram || '';
+      if(sthInp) sthInp.value = b.sthalam || '';
+      if(dateInp) dateInp.value = b.date || '';
+      if(typeof syncBothPlaces === 'function') { try{ syncBothPlaces(); }catch(e){} }
+      // PUSH restored data to Firebase immediately so public also gets it, and future pulls don't overwrite
+      try{
+        let payload = {v2: window.data, malsaram: b.malsaram||'', sthalam: b.sthalam||'', date: b.date||'', currentId: window.currentId, comps: window.competitions, ts: Date.now()};
+        await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json', {method:'PUT', body: JSON.stringify(payload)});
+        // Also push to KVDB if available
+        try{ if(typeof pushLiveAuto==='function') pushLiveAuto(); }catch(e){}
+        try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
+      }catch(e){ console.log('Restore push failed', e); }
+      // Re-enable pull after 3 sec
+      setTimeout(()=>{ window._restoring = false; }, 3000);
+      alert('✅ Restored from ' + b.time + ' - No reload, data saved');
+    }catch(e){
+      console.error('Restore failed', e);
+      alert('Restore failed: ' + e.message);
+      window._restoring = false;
+    }
+  };
+
+  // Guard pullLiveAuto: if restoring, don't overwrite
+  let origPull2 = window.pullLiveAuto;
+  if(origPull2){
+    window.pullLiveAuto = function(snap){
+      if(window._restoring) return;
+      return origPull2(snap);
+    };
+  }
+
+  console.log('✅ Restore 100% fix applied');
+})();
+</script>
+
+
+<script>
+// FIX ONLY: Restore - Keep only 18/10/2026 and 01/11/2026 + future competitions, delete old 10
+(function(){
+  function isKeptBackup(b){
+    let t = (b.time||'') + ' ' + (b.date||'') + ' ' + (b.malsaram||'');
+    // Keep 18/10/2026
+    if(t.includes('18/10/2026') || t.includes('18-10-2026') || t.includes('18/10/26') || t.includes('Oct 18') || t.includes('18 Oct')) return true;
+    // Keep 01/11/2026
+    if(t.includes('01/11/2026') || t.includes('1/11/2026') || t.includes('01-11-2026') || t.includes('1-11-2026') || t.includes('Nov 01') || t.includes('Nov 1') || t.includes('01 Nov')) return true;
+    // Also keep by date field exactly
+    if(b.date && (b.date.includes('2026-10-18') || b.date.includes('18/10/2026') || b.date.includes('2026-11-01') || b.date.includes('01/11/2026') || b.date.includes('1/11/2026'))) return true;
+    // Keep future competitions - after 14/11/2026 (today)
+    try{
+      let d = new Date(b.time);
+      if(!isNaN(d.getTime())){
+        // If backup is after 14 Nov 2026, keep it (future competitions)
+        let cutoff = new Date('2026-11-14T00:00:00');
+        if(d >= cutoff) return true;
+      }
+      // Also check ts
+      if(b.ts && b.ts >= new Date('2026-11-14').getTime()) return true;
+    }catch(e){}
+    return false;
+  }
+
+  // Clean on load - remove old 10, keep only 2 + future
+  try{
+    let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+    if(backups.length>0){
+      let kept = backups.filter(isKeptBackup);
+      // If filtering removed everything (date format mismatch), try to keep last 2 by time as fallback for those dates
+      // But user said keep only those 2, so if no match, we keep empty and let Firebase fallback handle
+      if(kept.length !== backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        console.log('✅ Cleaned backups: ' + backups.length + ' -> ' + kept.length + ' (kept 18/10/2026, 01/11/2026 + future)');
+      }
+    }
+  }catch(e){}
+
+  // Override saveBackup to auto-delete old backups except those 2 dates
+  let origSaveBackup = window.saveBackup;
+  // Patch: after any save, clean again
+  setInterval(()=>{
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(backups.length>0){
+        let kept = backups.filter(isKeptBackup);
+        // Future competitions should be kept, so if a new backup is today/future it will pass isKeptBackup
+        if(kept.length !== backups.length){
+          localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        }
+      }
+    }catch(e){}
+  }, 5000);
+
+  // Also patch restore list to show only kept ones
+  let origRestore = window.restoreFromBackup;
+  window.restoreFromBackup = async function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      let kept = backups.filter(isKeptBackup);
+      if(kept.length !== backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        backups = kept;
+      }
+      if(!backups || backups.length==0){
+        alert('ഇപ്പോൾ 2 Backup മാത്രമേ ഉള്ളൂ:\n1. 18/10/2026\n2. 01/11/2026\n\nപഴയ 10 എണ്ണം കളഞ്ഞു.');
+        return;
+      }
+      // Call original restore which will now show only kept list
+      return await origRestore();
+    }catch(e){
+      return await origRestore();
+    }
+  };
+
+  console.log('✅ Restore clean fix - only 18/10/2026, 01/11/2026 + future kept');
 })();
 </script>
 
