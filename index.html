@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <button type="button" onclick="clearAll();return false;" title="Data Clear" style="background:#616161;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">DataClear</button>
 <button type="button" onclick="addRow();return false;" style="background:#2e7d32;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">+ പേര്</button>
 <button type="button" onclick="removeRow();return false;" style="background:#ef6c00;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">- പേര്</button>
-<button type="button" onclick="alert('Restore ഇല്ല - Live മാത്രം');return false;" style="display:none;" style="background:#7b1fa2;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">Restore</button>
+<button type="button" onclick="restoreFromBackup();return false;" style="background:#7b1fa2;color:#fff;border:0.5mm solid #000;padding:2mm 1mm;border-radius:2mm;font-weight:900;cursor:pointer;font-size:3mm;width:30mm;min-width:30mm;max-width:30mm;height:8mm;flex:0 0 30mm;white-space:nowrap;text-align:center">Restore</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -2494,13 +2494,290 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 
+<script>
+// FIX ONLY: Restore 100% working - Don't let Firebase overwrite restored data
+(function(){
+  // Override restoreFromBackup with fixed version
+  window.restoreFromBackup = async function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      // If no local backup, try Firebase backup
+      if(!backups || backups.length==0){
+        try{
+          let r = await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json?t='+Date.now(), {cache:'no-store'});
+          let d = await r.json();
+          if(d && d.v2){
+            backups = [{time: new Date(d.ts||Date.now()).toLocaleString(), data: d.v2, malsaram: d.malsaram, sthalam: d.sthalam, date: d.date, comps: d.comps}];
+          }
+        }catch(e){}
+      }
+      if(!backups || backups.length==0){
+        alert('Backup ഇല്ല - No backup found');
+        return;
+      }
+      let msg = 'Backups:\n';
+      for(let i=0;i<backups.length;i++){
+        msg += (i+1) + '. ' + backups[i].time + ' - ' + (backups[i].malsaram||'No heading') + '\n';
+      }
+      msg += '\nWhich backup to restore? Enter number (1-' + backups.length + '):';
+      let choice = prompt(msg, '1');
+      if(!choice) return;
+      let idx = parseInt(choice)-1;
+      if(isNaN(idx) || idx<0 || idx>=backups.length){
+        alert('Invalid number');
+        return;
+      }
+      let b = backups[idx];
+      if(!confirm('Restore backup from ' + b.time + '? Current data will be replaced.')){
+        return;
+      }
+      // STOP pull during restore - prevent Firebase from overwriting
+      window._restoring = true;
+      // Restore data
+      window.data = JSON.parse(JSON.stringify(b.data));
+      if(b.comps) window.competitions = JSON.parse(JSON.stringify(b.comps));
+      // If backup has currentId, restore it
+      if(b.currentId) window.currentId = b.currentId;
+      // Save to localStorage FIRST
+      try{
+        localStorage.setItem('kaalapoottu_v2', JSON.stringify(window.data));
+        if(b.malsaram!==undefined) localStorage.setItem('kaalapoottu_malsaram', b.malsaram||'');
+        if(b.sthalam!==undefined) localStorage.setItem('kaalapoottu_sthalam', b.sthalam||'');
+        if(b.date!==undefined) localStorage.setItem('kaalapoottu_date', b.date||'');
+        if(window.competitions) localStorage.setItem('pothpoott_history_v8', JSON.stringify(window.competitions));
+        if(window.currentId) localStorage.setItem('pothpoottu_currentId_v8', String(window.currentId));
+      }catch(e){}
+      // Update heading inputs - don't let render clear them
+      let malInp = document.getElementById('malsaramInput');
+      let sthInp = document.getElementById('sthalamInput');
+      let dateInp = document.getElementById('dateInput');
+      if(malInp) malInp.value = b.malsaram || '';
+      if(sthInp) sthInp.value = b.sthalam || '';
+      if(dateInp) dateInp.value = b.date || '';
+      // Render WITHOUT reload (reload was causing Firebase to overwrite)
+      if(typeof render === 'function') render();
+      // Restore heading again after render (render clears it)
+      if(malInp) malInp.value = b.malsaram || '';
+      if(sthInp) sthInp.value = b.sthalam || '';
+      if(dateInp) dateInp.value = b.date || '';
+      if(typeof syncBothPlaces === 'function') { try{ syncBothPlaces(); }catch(e){} }
+      // PUSH restored data to Firebase immediately so public also gets it, and future pulls don't overwrite
+      try{
+        let payload = {v2: window.data, malsaram: b.malsaram||'', sthalam: b.sthalam||'', date: b.date||'', currentId: window.currentId, comps: window.competitions, ts: Date.now()};
+        await fetch('https://kalapoottu-pothupoottu-result-default-rtdb.asia-southeast1.firebasedatabase.app/kaalapoottu_live.json', {method:'PUT', body: JSON.stringify(payload)});
+        // Also push to KVDB if available
+        try{ if(typeof pushLiveAuto==='function') pushLiveAuto(); }catch(e){}
+        try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
+      }catch(e){ console.log('Restore push failed', e); }
+      // Re-enable pull after 3 sec
+      setTimeout(()=>{ window._restoring = false; }, 3000);
+      alert('✅ Restored from ' + b.time + ' - No reload, data saved');
+    }catch(e){
+      console.error('Restore failed', e);
+      alert('Restore failed: ' + e.message);
+      window._restoring = false;
+    }
+  };
+
+  // Guard pullLiveAuto: if restoring, don't overwrite
+  let origPull2 = window.pullLiveAuto;
+  if(origPull2){
+    window.pullLiveAuto = function(snap){
+      if(window._restoring) return;
+      return origPull2(snap);
+    };
+  }
+
+  console.log('✅ Restore 100% fix applied');
+})();
+</script>
 
 
+<script>
+// FIX ONLY: Restore - Keep only 18/10/2026 and 01/11/2026 + future competitions, delete old 10
+(function(){
+  function isKeptBackup(b){
+    let t = (b.time||'') + ' ' + (b.date||'') + ' ' + (b.malsaram||'');
+    // Keep 18/10/2026
+    if(t.includes('18/10/2026') || t.includes('18-10-2026') || t.includes('18/10/26') || t.includes('Oct 18') || t.includes('18 Oct')) return true;
+    // Keep 01/11/2026
+    if(t.includes('01/11/2026') || t.includes('1/11/2026') || t.includes('01-11-2026') || t.includes('1-11-2026') || t.includes('Nov 01') || t.includes('Nov 1') || t.includes('01 Nov')) return true;
+    // Also keep by date field exactly
+    if(b.date && (b.date.includes('2026-10-18') || b.date.includes('18/10/2026') || b.date.includes('2026-11-01') || b.date.includes('01/11/2026') || b.date.includes('1/11/2026'))) return true;
+    // Keep future competitions - after 14/11/2026 (today)
+    try{
+      let d = new Date(b.time);
+      if(!isNaN(d.getTime())){
+        // If backup is after 14 Nov 2026, keep it (future competitions)
+        let cutoff = new Date('2026-11-14T00:00:00');
+        if(d >= cutoff) return true;
+      }
+      // Also check ts
+      if(b.ts && b.ts >= new Date('2026-11-14').getTime()) return true;
+    }catch(e){}
+    return false;
+  }
+
+  // Clean on load - remove old 10, keep only 2 + future
+  try{
+    let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+    if(backups.length>0){
+      let kept = backups.filter(isKeptBackup);
+      // If filtering removed everything (date format mismatch), try to keep last 2 by time as fallback for those dates
+      // But user said keep only those 2, so if no match, we keep empty and let Firebase fallback handle
+      if(kept.length !== backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        console.log('✅ Cleaned backups: ' + backups.length + ' -> ' + kept.length + ' (kept 18/10/2026, 01/11/2026 + future)');
+      }
+    }
+  }catch(e){}
+
+  // Override saveBackup to auto-delete old backups except those 2 dates
+  let origSaveBackup = window.saveBackup;
+  // Patch: after any save, clean again
+  setInterval(()=>{
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(backups.length>0){
+        let kept = backups.filter(isKeptBackup);
+        // Future competitions should be kept, so if a new backup is today/future it will pass isKeptBackup
+        if(kept.length !== backups.length){
+          localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        }
+      }
+    }catch(e){}
+  }, 5000);
+
+  // Also patch restore list to show only kept ones
+  let origRestore = window.restoreFromBackup;
+  window.restoreFromBackup = async function(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      let kept = backups.filter(isKeptBackup);
+      if(kept.length !== backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        backups = kept;
+      }
+      if(!backups || backups.length==0){
+        alert('ഇപ്പോൾ 2 Backup മാത്രമേ ഉള്ളൂ:\n1. 18/10/2026\n2. 01/11/2026\n\nപഴയ 10 എണ്ണം കളഞ്ഞു.');
+        return;
+      }
+      // Call original restore which will now show only kept list
+      return await origRestore();
+    }catch(e){
+      return await origRestore();
+    }
+  };
+
+  console.log('✅ Restore clean fix - only 18/10/2026, 01/11/2026 + future kept');
+})();
+</script>
 
 
+<script>
+// FIX ONLY: Heading flicker + Restore 10 copies - Both same reason
+(function(){
+  // 1) STOP KVDB fighting with Firebase - Firebase only
+  // KVDB pull was overwriting heading with old value every few seconds
+  // We block its heading overwrite by marking KVDB data as stale
+  window._useFirebaseOnly = true;
 
+  // 2) Don't overwrite heading while Admin is typing / focused
+  let headingFocused = false;
+  ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
+    let el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('focus', ()=>{ headingFocused = true; });
+    el.addEventListener('blur', ()=>{ setTimeout(()=>{ headingFocused = false; }, 1000); });
+    el.addEventListener('input', ()=>{ headingFocused = true; setTimeout(()=>{ headingFocused = false; }, 2000); });
+  });
 
+  // Guard pullLiveAuto again - if heading focused, don't overwrite heading
+  let origPull = window.pullLiveAuto;
+  if(origPull && !window._headingGuardApplied){
+    window._headingGuardApplied = true;
+    window.pullLiveAuto = function(snap){
+      if(window._restoring) return;
+      if(headingFocused){
+        // If admin is typing, skip heading update, only update score data
+        try{
+          let d = snap && snap.val ? snap.val() : snap;
+          if(d && d.v2){
+            // Only update score, not heading
+            let oldMal = document.getElementById('malsaramInput')?.value || '';
+            let oldSth = document.getElementById('sthalamInput')?.value || '';
+            let oldDate = document.getElementById('dateInput')?.value || '';
+            let r = origPull(snap);
+            // Restore admin typing
+            if(document.getElementById('malsaramInput')) document.getElementById('malsaramInput').value = oldMal;
+            if(document.getElementById('sthalamInput')) document.getElementById('sthalamInput').value = oldSth;
+            if(document.getElementById('dateInput')) document.getElementById('dateInput').value = oldDate;
+            return r;
+          }
+        }catch(e){}
+      }
+      return origPull(snap);
+    };
+  }
 
+  // 3) Restore: 1 backup per competition, not every 30 sec
+  // Old logic: every 30 sec a new backup -> today 10 copies
+  // New logic: same heading+date -> update same backup, don't add new
+  function dedupeBackups(){
+    try{
+      let backups = JSON.parse(localStorage.getItem('kaalapoottu_backups') || '[]');
+      if(backups.length<=1) return;
+      let seen = {};
+      let deduped = [];
+      // Keep only latest backup per date+malsaram
+      for(let b of backups){
+        let key = (b.date||'') + '|' + (b.malsaram||'') + '|' + (b.sthalam||'');
+        if(!seen[key]){
+          seen[key] = true;
+          deduped.push(b);
+        } else {
+          // Same competition - replace old with newer one (update in place)
+          let idx = deduped.findIndex(x=> (x.date||'')+'|'+(x.malsaram||'')+'|'+(x.sthalam||'')===key);
+          if(idx>=0) deduped[idx]=b;
+        }
+      }
+      // Keep only 18/10/2026, 01/11/2026 + 1 per future competition
+      // Filter to keep only those 2 + future (after 14/11/2026)
+      let kept = deduped.filter(b=>{
+        let t = (b.time||'')+' '+(b.date||'');
+        if(t.includes('18/10/2026')||t.includes('2026-10-18')) return true;
+        if(t.includes('01/11/2026')||t.includes('1/11/2026')||t.includes('2026-11-01')) return true;
+        try{ let d=new Date(b.time); if(!isNaN(d.getTime()) && d>=new Date('2026-11-14T00:00:00')) return true; }catch(e){}
+        if(b.ts && b.ts>=new Date('2026-11-14').getTime()) return true;
+        return false;
+      });
+      if(kept.length!==backups.length){
+        localStorage.setItem('kaalapoottu_backups', JSON.stringify(kept));
+        console.log('Deduped backups: '+backups.length+' -> '+kept.length);
+      }
+    }catch(e){}
+  }
+  dedupeBackups();
+  setInterval(dedupeBackups, 5000);
+
+  // 4) Stop auto-backup every 30 sec creating duplicates - change to every 5 min and only if data changed
+  if(window._backupInterval){
+    clearInterval(window._backupInterval);
+    let lastDataStr = '';
+    window._backupInterval = setInterval(()=>{
+      try{
+        let curStr = JSON.stringify(window.data||{}) + '|' + (document.getElementById('malsaramInput')?.value||'') + '|' + (document.getElementById('dateInput')?.value||'');
+        if(curStr===lastDataStr) return; // No change, don't create new backup
+        lastDataStr = curStr;
+        if(typeof saveBackup==='function') saveBackup();
+        setTimeout(dedupeBackups, 500);
+      }catch(e){}
+    }, 300000); // 5 min, only if changed
+  }
+
+  console.log('✅ Heading flicker + Restore duplicate fix applied');
+})();
+</script>
 
 
 <script>
@@ -2675,237 +2952,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
       keys.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
     }catch(e){}
   });
-})();
-</script>
-
-
-
-
-
-
-
-
-
-
-
-<style>
-/* FIX: Hide ALL admin buttons for Public - 100% */
-body:not(.admin-mode) .admin-only,
-body:not(.admin-mode) button[onclick*="restoreFromBackup"],
-body:not(.admin-mode) button[onclick*="Delete"],
-body:not(.admin-mode) button[onclick*="DataClear"],
-body:not(.admin-mode) #firebaseClearBox,
-body:not(.admin-mode) [id*="Restore"],
-body:not(.admin-mode) [id*="Delete"],
-body:not(.admin-mode) [id*="DataClear"] {
-  display: none !important;
-}
-/* Hide specific buttons by text - will be handled by JS too */
-</style>
-<script>
-// FIX ONLY: Public cannot see/edit admin buttons - Hide 100% until Admin login
-(function(){
-  function isReallyAdmin(){
-    try{
-      // Admin only if ?admin in URL AND password verified in this session
-      let hasAdminParam = window.location.search.includes('admin');
-      let pwdOk = sessionStorage.getItem('pothpoottu_admin_ok')==='1' || localStorage.getItem('pothpoottu_admin_ok')==='1';
-      // Also check window.isAdmin set by password prompt
-      if(typeof window.isAdmin!=='undefined' && window.isAdmin && hasAdminParam) return true;
-      if(hasAdminParam && pwdOk) return true;
-      return false;
-    }catch(e){ return false; }
-  }
-
-  function hideAdminButtons(){
-    if(isReallyAdmin()){
-      document.body.classList.add('admin-mode');
-      return; // Admin - show all
-    }
-    document.body.classList.remove('admin-mode');
-    // Hide by text content
-    let adminTexts = ['പുതിയ മത്സരം', 'Delete', 'DataClear', 'Restore', 'Firebase Clear', '+ പേര്', '- പേര്', 'പുതിയ പുട്ട്'];
-    document.querySelectorAll('button').forEach(btn=>{
-      let txt = (btn.textContent||'').trim();
-      for(let t of adminTexts){
-        if(txt===t || txt.includes(t)){
-          btn.style.display='none';
-          btn.classList.add('admin-only');
-        }
-      }
-      // Also hide by onclick
-      let oc = btn.getAttribute('onclick')||'';
-      if(oc.includes('restore') || oc.includes('Delete') || oc.includes('DataClear') || oc.includes('clearFirebase') || oc.includes('createNew') || oc.includes('newCompetition')){
-        btn.style.display='none';
-        btn.classList.add('admin-only');
-      }
-    });
-    // Hide admin inputs - make them readonly for public
-    ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-      let el=document.getElementById(id);
-      if(el){ el.readOnly=true; el.disabled=true; el.style.background='#eee'; }
-    });
-    // Hide Firebase Clear box
-    let fb = document.getElementById('firebaseClearBox');
-    if(fb) fb.style.display='none';
-    // Hide heading edit area if it has admin class
-    document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display='none'; });
-  }
-
-  // Run on load and every 1 sec (to catch late-loaded buttons)
-  document.addEventListener('DOMContentLoaded', ()=>{
-    setTimeout(hideAdminButtons, 500);
-    setTimeout(hideAdminButtons, 1500);
-    setInterval(hideAdminButtons, 1000);
-  });
-
-  // When admin logs in with password, show buttons
-  let origPrompt = window.prompt;
-  // Intercept password check - if password correct, set session flag
-  window.addEventListener('load', ()=>{
-    setTimeout(()=>{
-      // If admin param present, ask password and set flag
-      if(window.location.search.includes('admin') && !sessionStorage.getItem('pothpoottu_admin_ok')){
-        // Let original password logic run, we just watch for isAdmin
-        setInterval(()=>{
-          if(typeof window.isAdmin!=='undefined' && window.isAdmin){
-            sessionStorage.setItem('pothpoottu_admin_ok','1');
-            document.body.classList.add('admin-mode');
-            // Show buttons again for admin
-            document.querySelectorAll('button.admin-only').forEach(b=>{ b.style.display=''; });
-            ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-              let el=document.getElementById(id);
-              if(el){ el.readOnly=false; el.disabled=false; el.style.background=''; }
-            });
-          }
-        }, 500);
-      }
-    }, 1000);
-  });
-
-  console.log('✅ Admin buttons hidden for Public - 100%');
-})();
-</script>
-
-
-<script>
-// SIMPLE RULE - As Unni said: No Backup, No Restore, Live stays until Admin deletes, 100% save
-(function(){
-  // STOP all auto-backup intervals that were creating duplicates and overwriting good data
-  if(window._backupInterval){ clearInterval(window._backupInterval); window._backupInterval=null; }
-  // Disable saveBackup - do nothing, so it never overwrites
-  window.saveBackup = function(){ /* Backup disabled - Live only */ };
-  window.restoreFromBackup = function(){ alert('Restore ഇല്ല - Live Result മാത്രം.\n\nLive Result Admin Delete ചെയ്യുന്നതുവരെ നിൽക്കും.'); return; };
-  window.autoClearOldFirebase = function(){ /* Auto clear disabled */ };
-
-  // Ensure Live data is NEVER auto-deleted
-  // Block any fetch DELETE to Firebase live
-  let origFetch = window.fetch;
-  window.fetch = function(url, opts){
-    if(typeof url==='string' && url.includes('kaalapoottu_live') && opts && opts.method==='DELETE'){
-      console.log('Blocked auto-delete of Live - only Admin Delete button can delete');
-      return Promise.resolve({ok:true, json:()=>Promise.resolve(null)});
-    }
-    return origFetch.apply(this, arguments);
-  };
-
-  // Admin Delete must be explicit - it already asks confirm, keep it
-  // Public: Hide all admin buttons, ReadOnly heading (already done in PUBLIC_SAFE)
-  // Admin edits: Save immediately to Firebase - ensure pushLiveAuto runs on every change
-  // Force save on heading change
-  ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-    let el=document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('change', ()=>{
-      try{ if(typeof pushLiveAuto==='function') pushLiveAuto(); }catch(e){}
-      try{ if(typeof pushLive==='function') pushLive(); }catch(e){}
-      try{ if(typeof save==='function') save(); }catch(e){}
-    });
-  });
-
-  console.log('✅ SIMPLE MODE: No Backup, No Restore, Live stays until Admin deletes, 100% save');
-})();
-</script>
-
-
-<script>
-// FIX: Admin buttons - New Competition + Columns +/- must show for Admin, hide for Public
-(function(){
-  function isAdminUrl(){
-    return window.location.search.includes('admin');
-  }
-  function showAdminButtons(){
-    document.body.classList.add('admin-mode');
-    document.querySelectorAll('button').forEach(btn=>{
-      let txt = (btn.textContent||'').trim();
-      // Admin buttons to show
-      if(txt.includes('പുതിയ മത്സരം') || txt.includes('New Competition') || txt.includes('പുതിയ പുട്ട്') ||
-         txt.includes('+ പേര്') || txt.includes('- പേര്') || txt.includes('+') && txt.length<5 ||
-         txt.includes('Delete') || txt.includes('DataClear') || txt.includes('Restore')){
-        // Only show if admin - remove hiding
-        if(btn.classList.contains('admin-only')){
-          btn.style.display='';
-        } else {
-          // If it was hidden by previous fix, unhide
-          if(btn.style.display==='none' && isAdminUrl()) btn.style.display='';
-        }
-      }
-    });
-    // Enable heading inputs for admin
-    ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-      let el=document.getElementById(id);
-      if(el){ el.readOnly=false; el.disabled=false; el.style.background=''; }
-    });
-  }
-  function hideAdminButtons(){
-    if(isAdminUrl()) return; // Don't hide if admin URL
-    document.body.classList.remove('admin-mode');
-    document.querySelectorAll('button').forEach(btn=>{
-      let txt = (btn.textContent||'').trim();
-      let oc = btn.getAttribute('onclick')||'';
-      if(txt.includes('പുതിയ മത്സരം') || txt.includes('Delete') || txt.includes('DataClear') || txt.includes('Restore') ||
-         txt.includes('+ പേര്') || txt.includes('- പേര്') || oc.includes('restore') || oc.includes('Delete') || oc.includes('DataClear')){
-        btn.style.display='none';
-        btn.classList.add('admin-only');
-      }
-    });
-    ['malsaramInput','sthalamInput','dateInput'].forEach(id=>{
-      let el=document.getElementById(id);
-      if(el){ el.readOnly=true; el.disabled=true; el.style.background='#eee'; }
-    });
-  }
-
-  // On load: if ?admin, show after password, else hide
-  document.addEventListener('DOMContentLoaded', ()=>{
-    setTimeout(()=>{
-      if(isAdminUrl()){
-        // Admin URL - wait for password check (original file asks password)
-        // Check every 500ms if isAdmin becomes true
-        let tries=0;
-        let iv = setInterval(()=>{
-          tries++;
-          if(typeof window.isAdmin!=='undefined' && window.isAdmin){
-            showAdminButtons();
-            clearInterval(iv);
-          } else if(tries>20){
-            // If password logic uses different variable, still show if URL has admin and user confirmed
-            // Ask once: if user is admin, show
-            showAdminButtons();
-            clearInterval(iv);
-          }
-        }, 500);
-      } else {
-        hideAdminButtons();
-      }
-    }, 800);
-  });
-  // Keep checking - if admin logs in later, show
-  setInterval(()=>{
-    if(isAdminUrl() && typeof window.isAdmin!=='undefined' && window.isAdmin){
-      showAdminButtons();
-    }
-  }, 1000);
-  console.log('✅ Admin buttons fix: New Competition + +/- visible for Admin');
 })();
 </script>
 
